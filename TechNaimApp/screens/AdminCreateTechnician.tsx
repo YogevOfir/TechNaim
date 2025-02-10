@@ -16,7 +16,7 @@ const AdminCreateTechnician = ({ navigation, route }: Props) => {
   const handleCreateTechnician = async () => {
     try {
       const token = 'YOUR_ADMIN_AUTH_TOKEN'; // Replace with actual authentication token
-      const response = await fetch('http://YOUR_SERVER_URL:5000/api/auth/admin/create-technician', {
+      const response = await fetch('http://10.0.0.14:5000/api/auth/admin/create-technician', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name, email, password })

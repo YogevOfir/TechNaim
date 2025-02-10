@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
 import io from 'socket.io-client';
 
-const socket = io('http://YOUR_SERVER_URL:5000'); // Replace with backend URL
+const socket = io('http://10.0.0.14:5000/technician');
 
 const TechnicianScreen = () => {
   const [status, setStatus] = useState('Available');

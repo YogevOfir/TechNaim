@@ -33,13 +33,12 @@ io.on('connection', (socket) => {
   });
 });
 
+
+
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true, // New URL parser
-    useUnifiedTopology: true, // New Server Discover and Monitoring engine
-    useCreateIndex: true}) // New Indexing engine
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.log(err.message));
+  .catch(err => console.error('Could not connect to MongoDB', err));
   
   // Routes
   app.use('/api/auth', authRoutes); // this is the route for the authRoutes file

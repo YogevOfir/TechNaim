@@ -8,10 +8,11 @@ interface LocationData {
   lng: number;
 }
 
-const socket = io('http://YOUR_SERVER_URL:5000'); // Replace with backend URL
+const socket = io('http://10.0.0.14:5000/customer'); 
 
 
-const CustomerScreen = () => {
+const CustomerScreen = ({route}: {route: any}) => {
+  const { user } = route.params;
   const [locationData, setLocationData] = useState<LocationData | null>(null);
 
   useEffect(() => {
@@ -25,7 +26,7 @@ const CustomerScreen = () => {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Customer Dashboard</Text>
+      <Text>Hello {user.name} </Text>
       {locationData && (
         <Text>
           Technician {locationData.technicianId} is at ({locationData.lat}, {locationData.lng})
