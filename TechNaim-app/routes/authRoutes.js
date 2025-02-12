@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/userModel');
+const Technician = require('../models/technicianModel');
 const Company = require('../models/companyModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -77,7 +78,7 @@ router.post('/signup', async (req, res) => {
 // Create and Assign a Technician to a Company (Admin Only)
 router.post('/create-and-assign-technician', authMiddleware, async (req, res) => {
     try {
-        const { name, country_id, email, password } = req.body;
+        const { name, country_id, email, password} = req.body;
     
         // Ensure only admins can assign technicians
         if (req.user.role !== 'admin') {
@@ -87,7 +88,8 @@ router.post('/create-and-assign-technician', authMiddleware, async (req, res) =>
         // Find company
         const company = await Company.findById(req.user.companyId);
         if (!company) return res.status(404).json({ message: 'Company not found' });
-        
+        console.log('Company found:', company);
+
         // Ensure email is unique
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
@@ -101,21 +103,21 @@ router.post('/create-and-assign-technician', authMiddleware, async (req, res) =>
             country_id,
             email, 
             password: hashedPassword, 
-            role: 'technician', 
+            role: 'technician',
             companyId: req.user.companyId
         });
 
         await user.save();
+        console.log('User created:', user);  
 
         // Create technician 
         const technician = new Technician({ 
             userId: user._id,
             companyId: req.user.companyId,
-            skills: [],
-            location: null
          });
 
         await technician.save();
+        console.log('Technician created:', technician);  
 
     
         // Assign the technician to the company
@@ -153,7 +155,7 @@ router.post('/create-admin', authMiddleware, async (req, res) => {
     // Create new admin user
     user = new User({ 
       name, 
-      country_id,  // Ensure country_id is provided
+      country_id,
       email, 
       password: hashedPassword, 
       role: 'admin'

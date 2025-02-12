@@ -1,38 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { signupStyles as styles } from '../styles/signupStyles';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ActivityIndicator,
+} from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [name, setName] = useState('');
   const [country_id, setId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
-    // Basic validation for empty fields
     if (!name || !country_id || !email || !password) {
       Alert.alert('Validation Failed', 'Please fill in all fields.');
       return;
     }
 
-    // Ensure country_id is numeric
     if (isNaN(Number(country_id))) {
       Alert.alert('Validation Failed', 'Country ID must be a number.');
       return;
     }
 
-    // Ensure email is in format 'name@domain.end'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       Alert.alert('Validation Failed', 'Invalid email address.');
       return;
     }
 
-    // Ensure password is at least 6 characters long
     if (password.length < 6) {
       Alert.alert('Validation Failed', 'Password must be at least 6 characters long.');
       return;
     }
 
+    setIsLoading(true);
     try {
       const response = await fetch('http://10.0.0.14:5000/api/auth/signup', {
         method: 'POST',
@@ -41,54 +53,114 @@ const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       });
 
       const data = await response.json();
-      // console.log('Signup response:', data);
-
       if (!response.ok) throw new Error(data.message);
 
       Alert.alert('Signup Successful', 'You can now log in.');
       navigation.navigate('Login');
     } catch (error) {
-      // console.error('Signup error:', error);
       if (error instanceof Error) {
         Alert.alert('Signup Failed', error.message);
       } else {
         Alert.alert('Signup Failed', 'An unknown error occurred.');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Signup</Text>
-      <TextInput
-        placeholder="Full Name"
-        value={name}
-        onChangeText={setName}
-        style={{ borderWidth: 1, width: 200, marginBottom: 10, padding: 5 }}
-      />
-      <TextInput
-        placeholder="ID"
-        value={country_id}
-        onChangeText={setId}
-        keyboardType="numeric" // Ensure numeric input for country_id
-        style={{ borderWidth: 1, width: 200, marginBottom: 10, padding: 5 }}
-      />
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address" // Set keyboard for email input
-        style={{ borderWidth: 1, width: 200, marginBottom: 10, padding: 5 }}
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ borderWidth: 1, width: 200, marginBottom: 10, padding: 5 }}
-      />
-      <Button title="Signup" onPress={handleSignup} />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <View style={styles.contentContainer}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Sign up to get started</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Full Name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                placeholderTextColor="#666"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="card-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="ID"
+                value={country_id}
+                onChangeText={setId}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor="#666"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                style={styles.input}
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                style={styles.input}
+                placeholderTextColor="#666"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.signupButton}
+            onPress={handleSignup}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signupButtonText}>Sign Up</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginLink}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
