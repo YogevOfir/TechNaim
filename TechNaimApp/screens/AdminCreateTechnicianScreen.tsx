@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
-
 import { NavigationProp, RouteProp } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {
   navigation: NavigationProp<any>;
   route: RouteProp<any>;
 }
 
-const AdminCreateTechnician = ({ navigation, route }: Props) => {
+const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleCreateTechnician = async () => {
     try {
-      const token = 'YOUR_ADMIN_AUTH_TOKEN'; // Replace with actual authentication token
+      const token = await AsyncStorage.getItem('token');
+      
       const response = await fetch('http://10.0.0.14:5000/api/auth/admin/create-technician', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -47,4 +48,4 @@ const AdminCreateTechnician = ({ navigation, route }: Props) => {
   );
 };
 
-export default AdminCreateTechnician;
+export default AdminCreateTechnicianScreen;

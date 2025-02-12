@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const routes = require('./routes'); // import all routes
 
-const authRoutes = require('./routes/authRoutes'); // this is the route for the authRoutes file
-
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(cors());
@@ -41,7 +41,7 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error('Could not connect to MongoDB', err));
   
   // Routes
-  app.use('/api/auth', authRoutes); // this is the route for the authRoutes file
+  app.use('/api/', routes); // this is the route for the authRoutes file
 
 
 const PORT = process.env.PORT || 5000;

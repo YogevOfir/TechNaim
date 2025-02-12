@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 import { NavigationProp } from '@react-navigation/native';
 
 const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
@@ -26,10 +27,8 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
         if (!contentType || !contentType.includes('application/json')) {
           throw new Error('Expected JSON response');
         }
-    
 
         const data = await response.json();
-        console.log('Login response:', data);
 
         if (!response.ok) throw new Error(data.message);
 
@@ -38,6 +37,9 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
         // Navigate to the home screen
         switch (data.user.role) {
+          case 'superAdmin':
+              navigation.navigate('AdminCreation', { user: data.user });
+            break;
           case 'admin':
             navigation.navigate('Admin', { user: data.user });
             break;
