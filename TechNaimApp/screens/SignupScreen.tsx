@@ -19,6 +19,8 @@ const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [name, setName] = useState('');
   const [country_id, setId] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAdress] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +51,7 @@ const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       const response = await fetch('http://10.0.0.14:5000/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, country_id, email, password, role: 'customer' })
+        body: JSON.stringify({ name, country_id, email, phone, address, password, role: 'customer' })
       });
 
       const data = await response.json();
@@ -114,6 +116,29 @@ const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
                 style={styles.input}
                 placeholderTextColor="#666"
                 autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Phone"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                style={styles.input}
+                placeholderTextColor="#666"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="home-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Address"
+                value={address}
+                onChangeText={setAdress}
+                style={styles.input}
+                placeholderTextColor="#666"
               />
             </View>
 

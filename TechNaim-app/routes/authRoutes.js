@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
       const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       // Send user details & token
-      res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, role: user.role } });
+      res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: user.companyId || null } });
   } catch (err) {
       console.error("Error during login", err);
       res.status(500).json({ message: 'Server error', error: err.message });
@@ -42,7 +42,7 @@ router.post('/login', async (req, res) => {
 // Public Signup: Only Customers Can Sign Up
 router.post('/signup', async (req, res) => {
   try {
-    const { name, country_id, email, password, role, companyId } = req.body;
+    const { name, country_id, email, phone, address, password, role, companyId } = req.body;
     console.log('Recieved signup request', req.body);
 
     // Check if email already exists
@@ -57,6 +57,8 @@ router.post('/signup', async (req, res) => {
       name, 
       country_id,
       email, 
+      phone,
+      address,
       password: hashedPassword, 
       role, 
       companyId: role !== 'customer' ? companyId : null // if role is customer, companyId is null
@@ -78,7 +80,7 @@ router.post('/signup', async (req, res) => {
 // Create and Assign a Technician to a Company (Admin Only)
 router.post('/create-and-assign-technician', authMiddleware, async (req, res) => {
     try {
-        const { name, country_id, email, password} = req.body;
+        const { name, country_id, email, phone, password} = req.body;
     
         // Ensure only admins can assign technicians
         if (req.user.role !== 'admin') {
@@ -102,6 +104,7 @@ router.post('/create-and-assign-technician', authMiddleware, async (req, res) =>
             name,
             country_id,
             email, 
+            phone,
             password: hashedPassword, 
             role: 'technician',
             companyId: req.user.companyId
@@ -134,7 +137,7 @@ router.post('/create-and-assign-technician', authMiddleware, async (req, res) =>
 // Super Admin Only: Create Admins
 router.post('/create-admin', authMiddleware, async (req, res) => {
   try {
-    const { name, country_id, email, password, companyName } = req.body;
+    const { name, country_id, email, phone, password, companyName } = req.body;
 
     // Only super admins can create admins
     if (req.user.role !== 'superAdmin') {
@@ -157,6 +160,7 @@ router.post('/create-admin', authMiddleware, async (req, res) => {
       name, 
       country_id,
       email, 
+      phone,
       password: hashedPassword, 
       role: 'admin'
     });

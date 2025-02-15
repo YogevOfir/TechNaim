@@ -13,6 +13,7 @@ const AdminCreationScreen = ({ navigation, route }: Props) => {
   const [name, setName] = useState('');
   const [country_id, setCountryId] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
 
@@ -32,7 +33,7 @@ const AdminCreationScreen = ({ navigation, route }: Props) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, country_id, email, password, companyName, role: 'admin' }),
+        body: JSON.stringify({ name, country_id, email, phone, password, companyName, role: 'admin' }),
       });
 
       const data = await response.json();
@@ -75,6 +76,15 @@ const AdminCreationScreen = ({ navigation, route }: Props) => {
               onChangeText={setCountryId}
               keyboardType="numeric"
               secureTextEntry
+              style={styles.input}
+            />
+          </View>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Phone"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
               style={styles.input}
             />
           </View>

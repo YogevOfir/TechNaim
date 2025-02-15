@@ -17,12 +17,15 @@ const AdminScreen = ({route}: AdminScreenProps) => {
   const { user } = route.params;
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Admin Dashboard</Text>
+    <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', flexDirection: 'column' }}>
       <Text>Welcome {user.name}</Text>
       <Button 
         title="Create New Technician" 
         onPress={() => navigation.navigate('AdminCreateTechnician', { user })}
+      />
+      <Button 
+        title="Create new Appointment" 
+        onPress={() => navigation.navigate('CreateAppointment', { user })}
       />
     </View>
   );

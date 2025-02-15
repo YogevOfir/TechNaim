@@ -9,6 +9,8 @@ import AdminScreen from '../screens/AdminScreen';
 import AdminCreateTechnicianScreen from '../screens/AdminCreateTechnicianScreen';
 import AdminCreationScreen from '../screens/AdminCreationScreen';
 import { RootStackParamList } from '../types/navigationTypes'; 
+import CreateAppointmentScreen from '../screens/CreateAppointmentScreen';
+
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -22,6 +24,7 @@ const AppNavigator = () => (
       <Stack.Screen name="Admin" component={AdminScreen} />
       <Stack.Screen name="AdminCreateTechnician" component={AdminCreateTechnicianScreen} />
       <Stack.Screen name="AdminCreation" component={AdminCreationScreen} options={{title: 'Create Admin'}} />
+      <Stack.Screen name="CreateAppointment" component={CreateAppointmentScreen} options={{title: 'Create Appointment'}} />
     </Stack.Navigator>
   </NavigationContainer>
 );

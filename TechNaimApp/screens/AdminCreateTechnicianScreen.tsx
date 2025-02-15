@@ -25,6 +25,7 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [country_id, setCountryId] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +62,7 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
           'Content-Type': 'application/json', 
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ name, country_id, email, password })
+        body: JSON.stringify({ name, country_id, email, phone, password })
       });
 
       const data = await response.json();
@@ -124,6 +125,18 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
                 value={country_id}
                 onChangeText={setCountryId}
                 keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor="#666"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Phone"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
                 style={styles.input}
                 placeholderTextColor="#666"
               />

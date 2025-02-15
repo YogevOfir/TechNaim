@@ -14,18 +14,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const loadUser = async () => {
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        console.log('Stored user (on app start):', storedUser);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
       }
     };
     loadUser();
   }, []);
+  
+  
+  
+  
 
   const login = async (userData: { email: string }) => {
+    console.log('Logging in user:', userData);
     setUser(userData);
-    await AsyncStorage.setItem('user', JSON.stringify(userData));
+  
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+  
+      // Immediately check if it was saved correctly
+      const savedUser = await AsyncStorage.getItem('user');
+      console.log('Saved user after login:', savedUser);
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
   };
+  
 
   const logout = async () => {
     setUser(null);

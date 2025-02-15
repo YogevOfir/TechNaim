@@ -15,6 +15,7 @@ module.exports = async (req, res, next) => {
     }
 
     const extractedToken = tokenParts[1];
+    console.log("Extracted Token:", extractedToken); // Debugging
     
     // 🔹 Debugging: Verify JWT_SECRET exists
     if (!process.env.JWT_SECRET) {

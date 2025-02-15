@@ -6,8 +6,6 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes'); // import all routes
 
-const authRoutes = require('./routes/authRoutes');
-
 const app = express();
 app.use(cors());
 app.use(express.json());

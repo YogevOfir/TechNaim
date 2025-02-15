@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { loginStyles as styles } from '../styles/loginStyles';
+import { useAuth } from '../context/AuthContext';
 import {
   View,
   Text,
@@ -22,6 +23,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const { login } = useAuth();
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Validation Failed', 'Please fill in all fields.');
@@ -42,9 +44,12 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       }
 
       const data = await response.json();
+      console.log('Full API response:', JSON.stringify(data, null, 2));
       if (!response.ok) throw new Error(data.message);
 
       await AsyncStorage.setItem('token', data.token);
+
+      login(data.user);
 
       switch (data.user.role) {
         case 'superAdmin':

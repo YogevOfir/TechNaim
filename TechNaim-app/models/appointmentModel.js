@@ -5,8 +5,9 @@ const appointmentSchema = new mongoose.Schema({
   technicianId: { type: mongoose.Schema.Types.ObjectId, ref: 'Technician', required: true },
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
   scheduledTime: { type: Date, required: true },
-  status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'in-progress', 'completed', 'canceled'], default: 'pending' },
   estimatedArrivalTime: { type: Date, default: null }, 
+  notes: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
