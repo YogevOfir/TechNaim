@@ -4,7 +4,7 @@ import io from 'socket.io-client';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import Constants from '../expo-constants/constants';
+import Constants from 'expo-constants';
 
 
 const socket = io('http://10.0.0.14:5000/technician');
@@ -97,7 +97,8 @@ const TechnicianScreen = () => {
   // Convert a customer address (string) to coordinates using Google Geocoding API.
   async function getCoordinatesFromAddress(address: string): Promise<{ lat: number; lng: number } | undefined> {
     // const address = '1600 Amphitheatre Parkway, Mountain View, CA' // Reverse the address for better geocoding results
-    const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey;
+    const config = Constants.expoConfig || Constants.manifest;
+    const apiKey = config?.extra?.googleMapsApiKey;
     console.log('Google Maps API Key: ', apiKey);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
     try {
@@ -119,7 +120,8 @@ const TechnicianScreen = () => {
     origin: { lat: number; lng: number },
     destination: { lat: number; lng: number }
   ): Promise<number> {
-    const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey;
+    const config = Constants.expoConfig || Constants.manifest;
+    const apiKey = config?.extra?.googleMapsApiKey;
     const originStr = `${origin.lat},${origin.lng}`;
     console.log('Origin: ', originStr);
     const destinationStr = `${destination.lat},${destination.lng}`;
