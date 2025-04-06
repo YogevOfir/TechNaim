@@ -48,6 +48,13 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       if (!response.ok) throw new Error(data.message);
 
       await AsyncStorage.setItem('token', data.token);
+      console.log('userId: ', data.user.id);
+      await AsyncStorage.setItem('userId', data.user.id);
+
+      if (data.user.role === 'technician') {
+        console.log('technicianId: ', data.user.technicianId);
+        await AsyncStorage.setItem('technicianId', data.user.technicianId);
+      }
 
       login(data.user);
 

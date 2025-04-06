@@ -30,7 +30,15 @@ router.post('/login', async (req, res) => {
       const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       // Send user details & token
-      res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: user.companyId || null } });
+      if (user.role === 'technician') {
+          // Find technician details
+          const technician = await Technician.findOne({ userId: user._id }).populate('companyId', 'name');
+          if (!technician) return res.status(404).json({ message: 'Technician not found' });
+          res.status(200).json({ token, user: { id: user._id, technicianId: technician._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: technician.companyId } });
+      }
+      else {
+          res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: user.companyId || null } });
+      }
   } catch (err) {
       console.error("Error during login", err);
       res.status(500).json({ message: 'Server error', error: err.message });

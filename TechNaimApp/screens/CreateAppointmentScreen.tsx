@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { RootStackParamList } from '../types/navigationTypes';
 
 interface Technician {
@@ -26,13 +26,12 @@ interface Props {
 const CreateAppointmentScreen = ({ navigation, route }: Props) => {
   const { user } = route.params;
   
-  
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [scheduledTime, setScheduledTime] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -42,32 +41,26 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
 
   const fetchTechnicians = async () => {
     try {
-        const token = await AsyncStorage.getItem('token');
-        const userString = await AsyncStorage.getItem('user');
-        const user = userString ? JSON.parse(userString) : null; // Retrieve the user object from AsyncStorage
-
-        const companyId = user?.companyId; // Use optional chaining to safely access companyId
-
-        if (!companyId) {
-            console.error('Company ID is undefined');
-            return;
-        }
-
-        const response = await fetch(`http://10.0.0.14:5000/api/technicians?companyId=${companyId}`, {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-
-        console.log('Fetched Technicians:', data);
-
-        if (Array.isArray(data)) {
-            setTechnicians(data);
-        } else {
-            console.error('Failed to fetch technicians:', data);
-        }
+      const token = await AsyncStorage.getItem('token');
+      const userString = await AsyncStorage.getItem('user');
+      const user = userString ? JSON.parse(userString) : null;
+      const companyId = user?.companyId;
+      if (!companyId) {
+        console.error('Company ID is undefined');
+        return;
+      }
+      const response = await fetch(`http://10.0.0.14:5000/api/technicians?companyId=${companyId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setTechnicians(data);
+      } else {
+        console.error('Failed to fetch technicians:', data);
+      }
     } catch (error) {
-        console.error('Error fetching technicians:', error);
+      console.error('Error fetching technicians:', error);
     }
   };
 
@@ -81,16 +74,15 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
       const data = await response.json();
       setCustomers(data);
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching customers:', error);
     }
   };
 
   const createAppointment = async () => {
     if (!selectedTechnician || !selectedCustomer || !scheduledTime) {
-      Alert.alert('Error', 'Please select a technician and a customer.');
+      Alert.alert('Error', 'Please select a technician, a customer, and a scheduled time.');
       return;
     }
-
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await fetch('http://10.0.0.14:5000/api/appointments', {
@@ -107,9 +99,7 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
           notes
         }),
       });
-
       if (!response.ok) throw new Error('Failed to create appointment');
-
       Alert.alert('Success', 'Appointment created successfully');
       navigation.goBack();
     } catch (error) {
@@ -119,6 +109,24 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
         Alert.alert('Error', 'An unknown error occurred');
       }
     }
+  };
+
+  const showDatePicker = () => {
+    console.log('Showing date picker');
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date: Date) => {
+    if (date > new Date()) {
+      setScheduledTime(date);
+    } else {
+      Alert.alert('Invalid Date', 'Please select a future date');
+    }
+    hideDatePicker();
   };
 
   return (
@@ -147,23 +155,17 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
 
       {/* Select Date */}
       <Text style={{ marginTop: 20 }}>Scheduled Time:</Text>
-      <Button title="Pick Date & Time" onPress={() => setShowPicker(true)} />
-      {showPicker && (
-        <DateTimePicker 
-          value={scheduledTime} 
-          mode="datetime"
-          display="default"
-          onChange={(event, date) => {
-            if (date && date > new Date()){
-              setScheduledTime(date);
-            } 
-            else{
-              Alert.alert('Invalid Date', 'Please select a future date');
-            }
-          }}
-        />
-      )}
+      <Button title="Pick Date & Time" onPress={showDatePicker} />
+      <Text style={{ marginTop: 10 }}>{scheduledTime.toLocaleString()}</Text>
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="datetime"
+        display="default"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+      />
 
+      {/* Appointment Notes */}
       <Text style={{ marginTop: 20 }}>Notes for the appointment:</Text>
       <TextInput 
         multiline

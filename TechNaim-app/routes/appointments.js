@@ -3,6 +3,7 @@ const router = express.Router();
 const Appointment = require('../models/appointmentModel'); // Assuming you have this model
 const authenticate  = require('../middlewares/authMiddleware'); 
 const Technician = require('../models/technicianModel')
+const schedule = require('node-schedule'); // For scheduling tasks
 
 // Create an appointment
 router.post('/', authenticate, async (req, res) => {
@@ -53,8 +54,8 @@ router.get('/customer', authenticate, async (req, res) => {
         console.error('Error getting appointments:', error);
         res.status(500).json({ message: 'Server error' });
     }
-});
 
+});
 
 
 // Get all appointments for a technician
