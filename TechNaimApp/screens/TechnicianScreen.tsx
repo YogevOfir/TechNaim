@@ -5,6 +5,7 @@ import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
+const moment = require('moment'); // Import moment.js for date formatting
 
 
 const socket = io('http://10.0.0.14:5000/technician');
@@ -20,6 +21,7 @@ interface Appointment {
     _id: string;
     name: string;
     address: string;
+    addressCoordinates: { lat: number; lng: number };
     phone: string;
   };
   notes: string;
@@ -33,11 +35,27 @@ interface QueueItem {
   queuePosition: number;
 }
 
+interface Customer {
+  _id: string;
+  name: string;
+  address: string;
+  phone: string;
+  addressCoordinates?: { lat: number; lng: number };
+}
+
+
+interface RouteLeg {
+  customer: Customer;
+  distance: number; // Approximate distance in kilometers
+}
+
+
 const TechnicianScreen = () => {
   const [status, setStatus] = useState('Available');
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [previousAppointments, setPreviousAppointments] = useState<Appointment[]>([]);
   const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>([]);
   const [dailyAppointments, setDailyAppointments] = useState<Appointment[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -73,6 +91,27 @@ const TechnicianScreen = () => {
     }
   };
 
+  async function updateAppointmentsInServer(updatedAppointments: Appointment[]): Promise<void> {
+    const token = await AsyncStorage.getItem('token');
+    try {
+      const response = await fetch('http://10.0.0.14:5000/api/appointments/updateSchedule', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ appointments: updatedAppointments }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update appointments schedule on server');
+      }
+      console.log('Appointments schedule updated successfully on the server.');
+    } catch (error) {
+      console.error('Error updating appointments schedule:', error);
+    }
+  }
+  
+
   // Retrieve current user ID from AsyncStorage (assumes it's stored under 'userId')
   useEffect(() => {
     AsyncStorage.getItem('userId').then((id) => {
@@ -92,7 +131,228 @@ const TechnicianScreen = () => {
     fetchAppointments();
   }, []);
 
+ 
+
+
+  useEffect(() => {
+    
+    const newAppointment = appointments.filter(
+      appointment => !previousAppointments?.some(
+        prevAppointment => prevAppointment._id === appointment._id
+      )
+    )
+
+    if (newAppointment.length === 0) return; // No new appointments
+    
+    const dateOfAppointment = new Date(newAppointment[0]?.scheduledTime);
+
+
+    computeScheduledRoute(dateOfAppointment).then((updatedAppointment) => {
+
+      setPreviousAppointments(updatedAppointment);
+      setAppointments(updatedAppointment);
+    });
+    
+  }, [appointments]);
+
+
+
   // --- Helper Functions for Geocoding & Directions ---
+
+  // This function calculates the route and travel time for appointments on dateOfAppointments.
+  // It uses Google Maps API to get coordinates from addresses and give the route based on greedy algorithm using lat & lng.
+  // then it calculates the travel time for each appointment.
+
+  async function computeScheduledRoute(dateOfAppointments: Date): Promise<Appointment[]> {
+    // First compute the approximate route.
+    const approxRoute = await computeApproxRoute(dateOfAppointments);
+
+    if (!approxRoute) {
+      console.error("No route computed.");
+      return appointments;
+    }
+
+    if (approxRoute.length === 0) {
+      return appointments;
+    }
+    
+    // Retrieve starting coordinates from AsyncStorage.
+    const storedCoordString = await AsyncStorage.getItem('addressCoordinates');
+    let startCoordinates: { lat: number; lng: number } | undefined;
+    if (storedCoordString) {
+      try {
+        startCoordinates = JSON.parse(storedCoordString);
+      } catch (error) {
+        console.error("Error parsing stored address coordinates:", error);
+      }
+    }
+    // If not available, use the first route leg's customer coordinates.
+    if (!startCoordinates) {
+      startCoordinates = approxRoute[0].customer.addressCoordinates!;
+    }
+    
+    // Set the technician's scheduled start time at 8:00 AM on the appointment date.
+    const baseTime = new Date(dateOfAppointments);
+    baseTime.setHours(8, 0, 0, 0);
+    let currentTime = new Date(baseTime.getTime());
+    let previousLocation = startCoordinates;
+    const WORKING_TIME = 30; // minutes spent at each appointment
+    
+    // Build a mapping of appointmentId to computed scheduledTime.
+    const scheduledTimes: { [appointmentId: string]: Date } = {};
+    
+    // For each leg in the route, compute travel time and update the scheduled time.
+    for (const leg of approxRoute) {
+      // Use getTravelTime to get refined travel duration (in minutes) between previous location and the customer's location.
+      const travelTime = await getTravelTime(previousLocation, leg.customer.addressCoordinates!);
+      // Add travel time to current time.
+      currentTime = new Date(currentTime.getTime() + travelTime * 60000);
+      // Set the scheduled arrival time for the customer.
+      scheduledTimes[leg.customer._id] = new Date(currentTime.getTime());
+      // Optionally add the working time after the appointment.
+      currentTime = new Date(currentTime.getTime() + WORKING_TIME * 60000);
+      // Update previous location.
+      previousLocation = leg.customer.addressCoordinates!;
+    }
+
+    // Update the appointments with the new scheduled times.
+    const updatedAppointments = appointments.map((appointment) => {
+      if (scheduledTimes[appointment.customerId._id]) {
+        return {
+          ...appointment,
+          scheduledTime: scheduledTimes[appointment.customerId._id].toISOString(),
+        };
+      }
+      return appointment;
+    });
+
+    await updateAppointmentsInServer(updatedAppointments);
+
+    return updatedAppointments;
+
+  }
+  
+
+
+
+  async function computeApproxRoute(dateOfAppointments: Date) {
+    // 1. Filter appointments for the given date and status "pending"
+    const appointmentsForDate = appointments.filter(appointment => {
+      const appDate = new Date(appointment.scheduledTime);
+      return appDate.getFullYear() === dateOfAppointments.getFullYear() &&
+        appDate.getMonth() === dateOfAppointments.getMonth() &&
+        appDate.getDate() === dateOfAppointments.getDate() &&
+        appointment.status === 'pending';
+    });
+
+    if (appointmentsForDate.length === 0) {
+      console.log("No appointments found for the selected date.");
+      return [];
+    }
+    else{
+      console.log("Amount of appointments found for the selected date: ", appointmentsForDate.length);
+    }
+
+    // 2. Convert appointments to Customer objects.
+    const customers: Customer[] = await Promise.all(
+      appointmentsForDate.map(async (app) => {
+      let coords = app.customerId.addressCoordinates;
+        return {
+          _id: app.customerId._id,
+          name: app.customerId.name,
+          address: app.customerId.address,
+          phone: app.customerId.phone,
+          addressCoordinates: coords,
+        };
+      })
+    );
+
+    // 3. Filter out any customers without coordinates.
+    const validCustomers = customers.filter((c) => c.addressCoordinates !== undefined);
+    if (validCustomers.length === 0) {
+      console.log("No valid customer coordinates available for the selected date.");
+      return [];
+    }
+
+     // 4. Retrieve the starting coordinates from AsyncStorage.
+    const storedCoordString = await AsyncStorage.getItem('addressCoordinates');
+    let startCoordinates: { lat: number; lng: number } | undefined;
+    if (storedCoordString) {
+      try {
+        startCoordinates = JSON.parse(storedCoordString);
+      } catch (error) {
+      console.error("Error parsing stored address coordinates:", error);
+      }
+    }
+
+    if (!startCoordinates) {
+      console.error("No starting coordinates available in AsyncStorage.");
+      return;
+    }
+
+    // 5. Use a greedy nearest-neighbor algorithm to build the route.
+    const route: RouteLeg[] = [];
+    let currentPos = startCoordinates;
+    const remaining = [...validCustomers];
+
+    while (remaining.length > 0) {
+      let bestCandidate: Customer | null = null;
+      let bestDistance = Infinity;
+      // find the nearest customer
+      for (const customer of remaining) {
+        const distance = haversineDistance(
+          currentPos.lat,
+          currentPos.lng,
+          customer.addressCoordinates!.lat,
+          customer.addressCoordinates!.lng
+        );
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestCandidate = customer;
+        }
+      }
+
+      if (bestCandidate) {
+        route.push({
+          customer: bestCandidate,
+          distance: bestDistance,
+        });
+        currentPos = bestCandidate.addressCoordinates!;
+        // Remove the selected customer from remaining customers
+        const index = remaining.findIndex(c => c._id === bestCandidate._id);
+        if (index !== -1) {
+          remaining.splice(index, 1);
+        }
+      }
+      else {
+          break; 
+      }
+    }
+
+    return route;
+  }
+
+   
+
+  function haversineDistance(
+    lat1: number, lng1: number, 
+    lat2: number, lng2: number
+  ): number {
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+
 
   // Convert a customer address (string) to coordinates using Google Geocoding API.
   async function getCoordinatesFromAddress(address: string): Promise<{ lat: number; lng: number } | undefined> {
@@ -253,6 +513,7 @@ const TechnicianScreen = () => {
     socket.emit('locationUpdate', locationData);
     console.log('Location update sent:', locationData);
   };
+
 
   const handleDatePress = (day: any) => {
     setSelectedDate(day.dateString);

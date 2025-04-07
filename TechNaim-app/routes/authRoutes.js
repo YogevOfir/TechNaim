@@ -34,10 +34,10 @@ router.post('/login', async (req, res) => {
           // Find technician details
           const technician = await Technician.findOne({ userId: user._id }).populate('companyId', 'name');
           if (!technician) return res.status(404).json({ message: 'Technician not found' });
-          res.status(200).json({ token, user: { id: user._id, technicianId: technician._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: technician.companyId } });
+          res.status(200).json({ token, user: { id: user._id, technicianId: technician._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, addressCoordinates: user.addressCoordinates, role: user.role, companyId: technician.companyId } });
       }
       else {
-          res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, role: user.role, companyId: user.companyId || null } });
+          res.status(200).json({ token, user: { id: user._id, name: user.name, country_id: user.country_id, email: user.email, phone: user.phone, address: user.address, addressCoordinates: user.addressCoordinates, role: user.role, companyId: user.companyId || null } });
       }
   } catch (err) {
       console.error("Error during login", err);
@@ -67,6 +67,7 @@ router.post('/signup', async (req, res) => {
       email, 
       phone,
       address,
+      addressCoordinates: await getCoordinatesFromAddress(address), // Get coordinates from address
       password: hashedPassword, 
       role, 
       companyId: role !== 'customer' ? companyId : null // if role is customer, companyId is null
@@ -88,7 +89,7 @@ router.post('/signup', async (req, res) => {
 // Create and Assign a Technician to a Company (Admin Only)
 router.post('/create-and-assign-technician', authMiddleware, async (req, res) => {
     try {
-        const { name, country_id, email, phone, password} = req.body;
+        const { name, country_id, email, phone, password, address} = req.body;
     
         // Ensure only admins can assign technicians
         if (req.user.role !== 'admin') {
@@ -115,7 +116,10 @@ router.post('/create-and-assign-technician', authMiddleware, async (req, res) =>
             phone,
             password: hashedPassword, 
             role: 'technician',
-            companyId: req.user.companyId
+            companyId: req.user.companyId,
+            address,
+            addressCoordinates: await getCoordinatesFromAddress(address) // Get coordinates from address
+
         });
 
         await user.save();
@@ -190,6 +194,27 @@ router.post('/create-admin', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
+async function getCoordinatesFromAddress(address) {
+  
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+  try {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.status === 'OK' && data.results.length > 0) {
+          const location = data.results[0].geometry.location;
+          return { lat: location.lat, lng: location.lng };
+      } else {
+          throw new Error('Unable to get coordinates from address');
+      }
+  } catch (error) {
+      console.error('Error fetching coordinates:', error);
+      throw error;
+  }
+  
+}
 
 
 module.exports = router;

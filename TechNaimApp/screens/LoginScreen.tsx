@@ -51,6 +51,10 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       console.log('userId: ', data.user.id);
       await AsyncStorage.setItem('userId', data.user.id);
 
+      if (data.user.addressCoordinates) {
+        await AsyncStorage.setItem('addressCoordinates', JSON.stringify(data.user.addressCoordinates));
+      }
+
       if (data.user.role === 'technician') {
         console.log('technicianId: ', data.user.technicianId);
         await AsyncStorage.setItem('technicianId', data.user.technicianId);

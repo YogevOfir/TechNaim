@@ -69,7 +69,7 @@ router.get('/technician', authenticate, async (req, res) => {
 
         const appointments = await Appointment.find({ technicianId: technician._id }).populate({
             path: 'customerId',
-            select: 'name address phone' // Populate customerId with name
+            select: 'name address phone addressCoordinates' // Populate customerId with name
         });
 
         console.log('Retrieved Appointments: ', appointments);
@@ -80,5 +80,33 @@ router.get('/technician', authenticate, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+
+// Update appointment schedule
+router.put('/updateSchedule', authenticate, async (req, res) => {
+    try {
+        const { appointments: updatedAppointments } = req.body;
+        if (!updatedAppointments || !Array.isArray(updatedAppointments)) {
+            return res.status(400).json({ message: 'Invalid appointments data' });
+        }
+        
+        // Build bulk update operations
+        const bulkOps = updatedAppointments.map(app => ({
+            updateOne: {
+                filter: { _id: app._id },
+                update: { $set: { scheduledTime: app.scheduledTime } },
+            }
+        }));
+
+        const result = await Appointment.bulkWrite(bulkOps);
+        console.log('Bulk update result:', result);
+        res.status(200).json({ message: 'Appointments schedule updated successfully', result });
+    } catch (error) {
+        console.error('Error updating appointments schedule:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
 
 module.exports = router;

@@ -27,6 +27,7 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
   const [country_id, setCountryId] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [address, setAddress] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -62,7 +63,7 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
           'Content-Type': 'application/json', 
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ name, country_id, email, phone, password })
+        body: JSON.stringify({ name, country_id, email, phone, password, address })
       });
 
       const data = await response.json();
@@ -117,6 +118,20 @@ const AdminCreateTechnicianScreen = ({ navigation, route }: Props) => {
                 autoCapitalize="none"
               />
             </View>
+
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name= "home-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Address"
+                value={address}
+                onChangeText={setAddress}
+                style={styles.input}
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+              />
+            </View>
+            
 
             <View style={styles.inputWrapper}>
               <Ionicons name="card-outline" size={20} color="#666" style={styles.inputIcon} />

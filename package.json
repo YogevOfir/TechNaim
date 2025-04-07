@@ -2,6 +2,7 @@
   "dependencies": {
     "@react-native-community/datetimepicker": "^8.3.0",
     "dotenv": "^16.4.7",
+    "moment-timezone": "^0.5.48",
     "node-schedule": "^2.1.1",
     "react-native-modal-datetime-picker": "^18.0.0"
   }

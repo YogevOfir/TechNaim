@@ -21,6 +21,7 @@ const SignupScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAdress] = useState('');
+  const [addressCoordinates, setAddressCoordinates] = useState({ latitude: 0, longitude: 0 });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
