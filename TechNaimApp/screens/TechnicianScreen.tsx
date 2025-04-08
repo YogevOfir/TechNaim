@@ -134,6 +134,22 @@ const TechnicianScreen = () => {
     fetchAppointments();
   }, []);
 
+  useEffect(() => {
+    // Only update periodically if there is an in-progress appointment.
+    // You might check todaysAppointments or current appointment.
+    const inProgressAppointment = appointments.find(app => app.status === 'in-progress');
+    if (inProgressAppointment) {
+      // Update location immediately, then every 20 minutes
+      sendLocationUpdate();
+      const interval = setInterval(() => {
+        sendLocationUpdate();
+      }, 20 * 60 * 1000); // 20 minutes in milliseconds
+  
+      // Cleanup on unmount or if dependency changes
+      return () => clearInterval(interval);
+    }
+  }, [appointments]);
+
  
 
 
@@ -550,11 +566,13 @@ const TechnicianScreen = () => {
   const renderDailyAppointments = () => {
     return dailyAppointments.map((appointment) => (
       <View key={appointment._id} style={styles.appointmentCard}>
-        <Text>Name: {appointment.customerId.name}</Text>
-        <Text>Phone Number: {appointment.customerId.phone}</Text>
-        <Text>Address: {appointment.customerId.address}</Text>
-        <Text>Notes: {appointment.notes}</Text>
-        <Text>Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}</Text>
+        <Text>🙎‍♂️Name: {appointment.customerId.name}</Text>
+        <Text>📞Phone Number: {appointment.customerId.phone}</Text>
+        <Text>📍Address: {appointment.customerId.address}</Text>
+        {appointment.notes && (
+          <Text>📝Notes: {appointment.notes}</Text>
+        )}
+        <Text>🕒Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}</Text>
       </View>
     ));
   };
@@ -570,10 +588,10 @@ const TechnicianScreen = () => {
         <Text style={styles.title}>Technician Dashboard</Text>
         <Text style={styles.status}>Status: {status}</Text>
     
-        <TouchableOpacity style={styles.button} onPress={sendLocationUpdate}>
+        {/* <TouchableOpacity style={styles.button} onPress={sendLocationUpdate}>
           <Ionicons name="location-outline" size={20} color="#fff" style={styles.buttonIcon} />
           <Text style={styles.buttonText}>Update Location</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
     
         <TouchableOpacity style={styles.button} onPress={() => setCalendarVisible(true)}>
           <Ionicons name="calendar-outline" size={20} color="#fff" style={styles.buttonIcon} />
@@ -584,7 +602,7 @@ const TechnicianScreen = () => {
         {todaysAppointments.length > 0 ? (
           todaysAppointments.map((appointment) => (
             <View key={appointment._id} style={styles.appointmentCard}>
-              <Text style={styles.companyTitle}>{appointment.customerId.name}</Text>
+              <Text style={styles.companyTitle}>🙎‍♂️ {appointment.customerId.name}</Text>
               <Text style={styles.infoText}>📞 {appointment.customerId.phone}</Text>
               <Text style={styles.infoText}>📍 {appointment.customerId.address}</Text>
               {appointment.notes && (

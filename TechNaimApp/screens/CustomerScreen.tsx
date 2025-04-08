@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import io from 'socket.io-client';
@@ -39,6 +39,9 @@ const CustomerScreen = ({ route }: { route: any }) => {
   const [estimatedArrival, setEstimatedArrival] = useState<number | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
 
+  const roomJoined = useRef<string | null>(null);
+  const joinCountRef = useRef<number>(0);
+
   const fetchAppointments = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -64,16 +67,19 @@ const CustomerScreen = ({ route }: { route: any }) => {
   // Determine current appointment (for example, the one with state "in-progress")
   useEffect(() => {
     if (appointments.length > 0) {
-      const appointmentInProgress = appointments.find(appointment => appointment.status === 'in-progress' || appointment.status === 'pending');
+      const appointmentInProgress = appointments.find(appointment => appointment.status === 'in-progress');
       setCurrentAppointment(appointmentInProgress || null);
     }
   }, [appointments]);
 
   useEffect(() => {
     // Fetch appointments when the component mounts or when the user changes.
-    if(currentAppointment) {
-      socket.emit('joinRoom', currentAppointment._id);
+    if (currentAppointment && currentAppointment._id !== roomJoined.current) {
+      joinCountRef.current++;
       console.log('Joining room for appointment:', currentAppointment._id);
+      console.log('Join count:', joinCountRef.current);
+      socket.emit('JoinRoom', currentAppointment._id);  // Match event name exactly with server.
+      roomJoined.current = currentAppointment._id;
     }
   }, [currentAppointment]);
 
@@ -93,7 +99,11 @@ const CustomerScreen = ({ route }: { route: any }) => {
         }
       }
       // Update technician location on map if the update is for this technician.
-      if (currentAppointment && data.technicianId === currentAppointment.technicianId) {
+      console.log('trying to update location data');
+      console.log('data.technicianId:', data.technicianId);
+      console.log('currentAppointment.technicianId:', currentAppointment?.technicianId._id);
+      if (currentAppointment && data.technicianId === currentAppointment.technicianId._id) {
+        console.log('Updating location data:', data.lat, data.lng);
         setLocationData({ lat: data.lat, lng: data.lng });
       }
     });
@@ -101,7 +111,7 @@ const CustomerScreen = ({ route }: { route: any }) => {
     return () => {
       socket.disconnect();
     };
-  }, [currentAppointment]);
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -154,10 +164,10 @@ const CustomerScreen = ({ route }: { route: any }) => {
         appointments.map((appointment) => (
           <View key={appointment._id} style={styles.appointmentCard}>
             <Text style={styles.companyTitle}>{appointment.technicianId.companyId.name}</Text>
-            <Text>Technician Name: {appointment.technicianId.userId.name}</Text>
-            <Text>Technician Phone: {appointment.technicianId.userId.phone}</Text>
+            <Text>🙎‍♂️Technician Name: {appointment.technicianId.userId.name}</Text>
+            <Text>📞Technician Phone: {appointment.technicianId.userId.phone}</Text>
             <Text>
-              Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}
+            🕒Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}
             </Text>
           </View>
         ))
