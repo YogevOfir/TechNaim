@@ -3,6 +3,9 @@ import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'react-native';
+import { customerStyles as styles } from '../styles/customerStyles';
 
 interface LocationData {
   lat: number;
@@ -103,6 +106,11 @@ const CustomerScreen = ({ route }: { route: any }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Title */}
+      {/* <Text style={styles.greeting}>Hello {user.name}</Text> */}
+      <Image
+        source={require('../assets/logo.png')}
+        style={styles.logo}
+      />
       <Text style={styles.greeting}>Hello {user.name}</Text>
 
       {/* Display appointments for today */}
@@ -160,38 +168,5 @@ const CustomerScreen = ({ route }: { route: any }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  greeting: { fontSize: 22, fontWeight: 'bold' },
-  info: { marginVertical: 10, fontSize: 16 },
-  header: { marginTop: 20, fontSize: 18, fontWeight: 'bold' },
-  appointmentCard: {
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-    width: '100%',
-  },
-  companyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: 'green',
-    textDecorationLine: 'underline',
-    textAlign: 'center',
-  },
-  map: {
-    width: Dimensions.get('window').width - 40,
-    height: 300,
-    marginVertical: 10,
-  },
-  loadingText: { marginVertical: 10 },
-  queueText: {
-    marginVertical: 10,
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'purple',
-  },
-});
 
 export default CustomerScreen;

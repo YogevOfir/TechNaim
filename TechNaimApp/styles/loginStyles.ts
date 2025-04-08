@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 export const loginStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f0f0f0',
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -93,5 +93,10 @@ export const loginStyles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  logo: {
+    width: 300,
+    height: 300,
+    marginBottom: 20,
   },
 });

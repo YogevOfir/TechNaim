@@ -12,6 +12,7 @@ import {
   Platform,
   SafeAreaView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
@@ -98,8 +99,12 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
       >
         <View style={styles.contentContainer}>
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
+            <Image
+              source={require('../assets/logo.png')}
+              style={styles.logo}
+            />
+            {/* <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text> */}
           </View>
 
           <View style={styles.inputContainer}>
@@ -157,6 +162,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
               <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+          <View style={{ flex: 0.7 }} />   
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

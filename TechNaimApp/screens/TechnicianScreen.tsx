@@ -5,6 +5,9 @@ import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
+import { technicianStyles as styles } from '../styles/technicianStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'react-native';
 const moment = require('moment'); // Import moment.js for date formatting
 
 
@@ -556,114 +559,85 @@ const TechnicianScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Technician Dashboard</Text>
-      <Text>Status: {status}</Text>
-      <Button title="Update Location" onPress={sendLocationUpdate} />
-      <Button title="Show Calendar" onPress={() => setCalendarVisible(true)} />
-      {/* Display today's appointments */}
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 20 }}>Today's Appointments:</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={{ flex: 0.25 }} />   
+      <Image
+        source={require('../assets/logo.png')}
+        style={styles.logo}
+      />
+      <Text style={styles.title}>Technician Dashboard</Text>
+      <Text style={styles.status}>Status: {status}</Text>
+  
+      <TouchableOpacity style={styles.button} onPress={sendLocationUpdate}>
+        <Ionicons name="location-outline" size={20} color="#fff" style={styles.buttonIcon} />
+        <Text style={styles.buttonText}>Update Location</Text>
+      </TouchableOpacity>
+  
+      <TouchableOpacity style={styles.button} onPress={() => setCalendarVisible(true)}>
+        <Ionicons name="calendar-outline" size={20} color="#fff" style={styles.buttonIcon} />
+        <Text style={styles.buttonText}>Show Calendar</Text>
+      </TouchableOpacity>
+  
+      <Text style={styles.sectionHeader}>Today's Appointments:</Text>
       {todaysAppointments.length > 0 ? (
         todaysAppointments.map((appointment) => (
           <View key={appointment._id} style={styles.appointmentCard}>
             <Text style={styles.companyTitle}>{appointment.customerId.name}</Text>
-            <Text>Phone: {appointment.customerId.phone}</Text>
-            <Text>Address: {appointment.customerId.address}</Text>
-            <Text>Notes: {appointment.notes}</Text>
-            <Text>Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}</Text>
+            <Text style={styles.infoText}>📞 {appointment.customerId.phone}</Text>
+            <Text style={styles.infoText}>📍 {appointment.customerId.address}</Text>
+            <Text style={styles.infoText}>📝 {appointment.notes}</Text>
+            <Text style={styles.infoText}>🕒 {new Date(appointment.scheduledTime).toLocaleString()}</Text>
           </View>
         ))
       ) : (
-        <Text>No appointments for today.</Text>
+        <Text style={styles.noAppointments}>No appointments for today.</Text>
       )}
-
-      {/* Display today's queue */}
+  
       {queue.length > 0 && (
         <View style={styles.queueContainer}>
-          <Text style={styles.queueHeader}>Today's Queue</Text>
+          <Text style={styles.sectionHeader}>Today's Queue</Text>
           {queue.map((item) => (
             <View key={item.appointment._id} style={styles.queueItem}>
-              <Text>
+              <Text style={styles.infoText}>
                 {item.queuePosition}. {item.appointment.customerId.name} – ETA: {item.estimatedArrival} min
               </Text>
             </View>
           ))}
         </View>
       )}
-
+  
       <Modal
         visible={calendarVisible}
         animationType="slide"
         onRequestClose={closeCalendar}
       >
-        <SafeAreaView style={{ flex: 1, marginTop: 50 }}>
+        <SafeAreaView style={styles.modalContainer}>
           <Calendar
             onDayPress={handleDatePress}
             markedDates={getMarkedDates()}
             markingType={'multi-dot'}
           />
-
+  
           {selectedDate && (
             <View style={styles.detailsContainer}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
-                Appointments on {selectedDate}:
-              </Text>
-              <ScrollView style={{ marginVertical: 10 }}>
+              <Text style={styles.sectionHeader}>Appointments on {selectedDate}:</Text>
+              <ScrollView style={styles.scrollContainer}>
                 {dailyAppointments.length > 0 ? (
                   renderDailyAppointments()
                 ) : (
-                  <Text>No appointments on this date.</Text>
+                  <Text style={styles.noAppointments}>No appointments on this date.</Text>
                 )}
               </ScrollView>
             </View>
           )}
-
+  
           <TouchableOpacity onPress={closeCalendar} style={styles.closeButton}>
-            <Text style={{ color: 'blue' }}>Close Calendar</Text>
+            <Text style={styles.closeText}>Close Calendar</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
-};
-
-const styles = StyleSheet.create({
-  detailsContainer: {
-    marginTop: 20,
-  },
-  closeButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-  },
-  appointmentCard: {
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-  },
-  companyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 5,
-    color: 'green',
-    textDecorationLine: 'underline',
-    textAlign: 'center',
-  },
-  queueContainer: {
-    marginTop: 20,
-    width: '90%',
-    backgroundColor: '#e0e0e0',
-    padding: 10,
-    borderRadius: 5,
-  },
-  queueHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  queueItem: {
-    paddingVertical: 5,
-  },
-});
+}
 
 export default TechnicianScreen;
