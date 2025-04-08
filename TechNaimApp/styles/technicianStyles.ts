@@ -1,11 +1,18 @@
 import { StyleSheet } from 'react-native';
 
 export const technicianStyles = StyleSheet.create({
-    container: {
+      container: {
         flex: 1,
         backgroundColor: '#f0f6ff',
         padding: 20,
         alignItems: 'center',
+      },
+      scrollGeneralContainer: {
+        // flexGrow: 1,
+        backgroundColor: '#f0f6ff',
+        padding: 20,
+        // paddingHorizontal: 20,
+        // paddingVertical: 20
       },
       title: {
         marginTop: 40,
@@ -87,6 +94,10 @@ export const technicianStyles = StyleSheet.create({
       modalContainer: {
         flex: 1,
         padding: 20,
+      },
+      modalScrollContent: {
+        padding: 20,
+        minHeight: '100%',
       },
       detailsContainer: {
         marginTop: 20,

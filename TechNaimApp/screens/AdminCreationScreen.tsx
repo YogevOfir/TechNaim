@@ -48,10 +48,10 @@ const AdminCreationScreen = ({ navigation, route }: Props) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Create Admin</Text>
-      </View>
       <View style={styles.contentContainer}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Create Admin</Text>
+        </View>
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <TextInput
