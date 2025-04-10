@@ -4,6 +4,7 @@ const Appointment = require('../models/appointmentModel'); // Assuming you have 
 const authenticate  = require('../middlewares/authMiddleware'); 
 const Technician = require('../models/technicianModel')
 const schedule = require('node-schedule'); // For scheduling tasks
+const { recalcScheduleForTechnician } = require('./schedule');
 
 // Create an appointment
 router.post('/', authenticate, async (req, res) => {
@@ -19,6 +20,7 @@ router.post('/', authenticate, async (req, res) => {
             return res.status(400).json({ message: 'Scheduled time must be in the future' });
         }
 
+        const isToday = new Date(scheduledTime).toDateString() === new Date().toDateString();
         // Create the appointment
         const newAppointment = new Appointment({
             customerId,
@@ -26,16 +28,34 @@ router.post('/', authenticate, async (req, res) => {
             companyId,
             scheduledTime,
             notes,
-            status: 'pending',
+            status: isToday ? 'in-progress' : 'pending', // Set status based on whether it's today or not
         });
 
         await newAppointment.save();
+
+        // get technician address coordinates
+        const technician = await Technician.findById(technicianId);
+        if (!technician) {
+            return res.status(404).json({ message: 'Technician not found' });
+        }
+        //  location = {lat, lng}
+        const currentLocation = technician.location || null;
+
+
+        recalcScheduleForTechnician(technicianId, scheduledTime, currentLocation)
+      .then(scheduleResult => {
+        console.log("Schedule recalculated:", scheduleResult);
+      })
+      .catch(err => {
+        console.error("Error recalculating schedule:", err);
+      });
 
         res.status(201).json({ message: 'Appointment created successfully', appointment: newAppointment });
     } catch (error) {
         console.error('Error creating appointment:', error);
         res.status(500).json({ message: 'Server error' });
     }
+
 });
 
 // Get all appointments for a user
@@ -49,7 +69,18 @@ router.get('/customer', authenticate, async (req, res) => {
             ]
         });
 
-        res.status(200).json({ appointments });
+        // // if appointment scheduled time is in the past, change status to completed
+        // appointments.forEach(app => {
+        //     if (new Date(app.scheduledTime).getDate < new Date().getDate() && app.status === 'pending' || app.status === 'in-progress') {
+        //         app.status = 'completed';
+        //         app.save();
+        //     }
+        // });
+
+        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed' && new Date(app.scheduledTime) > new Date());
+        const sortedAppointments = filteredAppointments.sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+
+        res.status(200).json({ appointments: sortedAppointments });
     } catch (error) {
         console.error('Error getting appointments:', error);
         res.status(500).json({ message: 'Server error' });
@@ -72,37 +103,42 @@ router.get('/technician', authenticate, async (req, res) => {
             select: 'name address phone addressCoordinates' // Populate customerId with name
         });
 
-        console.log('Retrieved Appointments: ', appointments);
+        // // if appointment scheduled time is in the past, change status to completed
+        // appointments.forEach(app => {
+        //     if (new Date(app.scheduledTime).getDate < new Date().getDate() && app.status === 'pending' || app.status === 'in-progress') {
+        //         app.status = 'completed';
+        //         app.save();
+        //     }
+        // });
 
-        res.status(200).json({ appointments });
+        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed' && new Date(app.scheduledTime) > new Date());
+        const sortedAppointments = filteredAppointments.sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+
+        const todaysAppointments = sortedAppointments.filter(app => {
+            const appointmentDate = new Date(app.scheduledTime);
+            return appointmentDate.toDateString() === new Date().toDateString(); // Filter for today's appointments
+        });
+        
+
+        res.status(200).json({ appointments: sortedAppointments, todaysAppointments });
     } catch (error) {
         console.error('Error getting appointments:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-
-// Update appointment schedule
-router.put('/updateSchedule', authenticate, async (req, res) => {
+// Finish an appointment
+router.put('/finish-task/:id', authenticate, async (req, res) => {
     try {
-        const { appointments: updatedAppointments } = req.body;
-        if (!updatedAppointments || !Array.isArray(updatedAppointments)) {
-            return res.status(400).json({ message: 'Invalid appointments data' });
-        }
-        
-        // Build bulk update operations
-        const bulkOps = updatedAppointments.map(app => ({
-            updateOne: {
-                filter: { _id: app._id },
-                update: { $set: { scheduledTime: app.scheduledTime } },
-            }
-        }));
+        const appointment = await Appointment.findById(req.params.id);
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
-        const result = await Appointment.bulkWrite(bulkOps);
-        console.log('Bulk update result:', result);
-        res.status(200).json({ message: 'Appointments schedule updated successfully', result });
+        appointment.status = 'completed';
+        await appointment.save();
+
+        res.status(200).json({ message: 'Appointment finished successfully', appointment });
     } catch (error) {
-        console.error('Error updating appointments schedule:', error);
+        console.error('Error finishing appointment:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

@@ -90,6 +90,23 @@ router.post('/signup', async (req, res) => {
 router.post('/create-and-assign-technician', authMiddleware, async (req, res) => {
     try {
         const { name, country_id, email, phone, password, address} = req.body;
+
+        if (!name || !country_id || !email || !phone || !password || !address) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+        }
+
+        if (phone.length != 10) {
+            return res.status(400).json({ message: 'Phone number must be at least 10 digits long' });
+        }
+
+        // if name is not 2 or 3 words, return error
+        if (name.split(' ').length < 2 || name.split(' ').length > 3) {
+            return res.status(400).json({ message: 'Name must be at least 2 words' });
+        }
     
         // Ensure only admins can assign technicians
         if (req.user.role !== 'admin') {

@@ -5,7 +5,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes'); // import all routes
-require('./schedules/appointmentStatusUpdate'); // import the schedule for appointment status update
+const { updatePendingToInProgress } = require('./schedules/appointmentStatusUpdate');
 
 const app = express();
 app.use(cors());
@@ -59,7 +59,15 @@ io.on('connection', (socket) => {
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => {
+    console.log('Connected to MongoDB');
+
+    // If the current time is 8:00 AM or later, update pending appointments immediately.
+    const now = new Date();
+    if (now.getHours() >= 8) {
+      updatePendingToInProgress();
+    }
+  })
   .catch(err => console.error('Could not connect to MongoDB', err));
   
   // Routes

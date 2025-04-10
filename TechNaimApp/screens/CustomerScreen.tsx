@@ -54,11 +54,7 @@ const CustomerScreen = ({ route }: { route: any }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      const filteredAppointments = data.appointments.filter((a: Appointment) => a.status !== 'completed' && a.status !== 'cancelled' && new Date(a.scheduledTime).getTime() > Date.now());
-      const sortedAppointments = filteredAppointments.sort((a: Appointment, b: Appointment) => 
-        new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()
-      );
-      setAppointments(sortedAppointments);
+      setAppointments(data.appointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
     }

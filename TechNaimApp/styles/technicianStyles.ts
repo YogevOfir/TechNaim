@@ -45,6 +45,19 @@ export const technicianStyles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
       },
+      finishAppointmentButton: {
+        backgroundColor: '#28a745', // green background for completion
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        alignSelf: 'center',
+        marginTop: 10,
+      },
+      finishAppointmentButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+      },
       sectionHeader: {
         // center the text
         textAlign: 'center',

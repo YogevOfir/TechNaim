@@ -4,8 +4,9 @@ const Technician = require('../models/technicianModel'); // Technician model
 const authenticate = require('../middlewares/authMiddleware.js'); 
 const Appointment = require('../models/appointmentModel'); // Appointment model
 const User = require('../models/userModel'); // User model
+const { recalcScheduleForTechnician } = require('./schedule');
 
-let technicianLocations = {};
+// let technicianLocations = {};
 
 // Get all technicians
 router.get('/', authenticate, async (req, res) => {
@@ -74,15 +75,14 @@ router.post('/update-location', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Invalid data' });
     }
     
-    // if the time is not 8-22
     const now = new Date();
-    if (now.getHours() < 8 || now.getHours() >= 22) {
-      return res.status(400).json({ error: 'Location tracking starts at 8AM and end at 10PM' });
+    if (now.getHours() < 8) {
+      return res.status(400).json({ error: 'Location tracking starts at 8AM and end at 11:59PM' });
     }
     
     // Check for an appointment today for this technician
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     
     const appointmentToday = await Appointment.findOne({
       technicianId,
@@ -91,45 +91,28 @@ router.post('/update-location', authenticate, async (req, res) => {
     });
     
     if (!appointmentToday) {
-      return res.status(400).json({ error: 'No appointment scheduled for today' });
+        lat = null;
+        lng = null;
     }
     
-    // Save the location update
-    technicianLocations[technicianId] = { lat, lng, updatedAt: now };
+    // Save the location update in the technicianLocations object
+    const technician = await Technician.findById(technicianId);
+    if (!technician) {
+      return res.status(404).json({ error: 'Technician not found' });
+    }
+    await Technician.findByIdAndUpdate(technicianId, { location: { lat, lng } });
+
+    const currentLocation = { lat, lng };
+    recalcScheduleForTechnician(technicianId, scheduledTime, currentLocation)
+      .then(scheduleResult => {
+        console.log("Schedule recalculated:", scheduleResult);
+      })
+      .catch(err => {
+        console.error("Error recalculating schedule:", err);
+      });
+
     res.json({ message: 'Location updated' });
 });
-
-
-
-// Customer gets the technician location (only after 8AM)
-router.get('/location/:technicianId', authenticate, async (req, res) => {
-    const { technicianId } = req.params;
-    const now = new Date();
-    if (now.getHours() < 8) {
-      return res.status(400).json({ error: 'Tracking starts at 8AM' });
-    }
-
-    // Check for an appointment today for this technician
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
-
-    const appointmentToday = await Appointment.findOne({
-        technicianId,
-        status: 'in-progress',
-        scheduledTime: { $gte: startOfToday, $lt: endOfToday }
-    });
-
-    if (!appointmentToday) {
-        return res.status(400).json({ error: 'No appointment scheduled for today' });
-    }
-    
-    const location = technicianLocations[technicianId];
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    res.json(location);
-  });
 
 
 module.exports = router;
