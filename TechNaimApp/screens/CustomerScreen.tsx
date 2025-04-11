@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import { customerStyles as styles } from '../styles/customerStyles';
+import AppointmentCard from '../components/AppointmentCard';
 
 interface LocationData {
   lat: number;
@@ -14,7 +15,12 @@ interface LocationData {
 
 interface Appointment {
   _id: string;
-  customerId: string;
+  customerId: {
+    name: string;
+    phone: string;
+    address: string;
+    country_id: string;
+  };
   scheduledTime: string;
   status: string;
   technicianId: {
@@ -22,6 +28,7 @@ interface Appointment {
     userId: {
       name: string;
       phone: string;
+      country_id: string;
     },
     companyId: {
       name: string;
@@ -29,7 +36,7 @@ interface Appointment {
   }
 }
 
-const socket = io('http://10.0.0.14:5000/customer'); 
+const socket = io('http://10.0.0.14:5000/customer');
 
 const CustomerScreen = ({ route }: { route: any }) => {
   const { user } = route.params;
@@ -45,7 +52,7 @@ const CustomerScreen = ({ route }: { route: any }) => {
   const fetchAppointments = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      if(!token) {
+      if (!token) {
         console.error('Token not found');
         return;
       }
@@ -158,14 +165,7 @@ const CustomerScreen = ({ route }: { route: any }) => {
       <Text style={styles.header}>Appointments:</Text>
       {appointments.length > 0 ? (
         appointments.map((appointment) => (
-          <View key={appointment._id} style={styles.appointmentCard}>
-            <Text style={styles.companyTitle}>{appointment.technicianId.companyId.name}</Text>
-            <Text>🙎‍♂️Technician Name: {appointment.technicianId.userId.name}</Text>
-            <Text>📞Technician Phone: {appointment.technicianId.userId.phone}</Text>
-            <Text>
-            🕒Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}
-            </Text>
-          </View>
+          <AppointmentCard key={appointment._id} appointment={appointment} role='Customer' />
         ))
       ) : (
         <Text>No appointments available.</Text>

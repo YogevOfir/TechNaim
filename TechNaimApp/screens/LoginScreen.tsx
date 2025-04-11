@@ -103,8 +103,6 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
               source={require('../assets/logo.png')}
               style={styles.logo}
             />
-            {/* <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text> */}
           </View>
 
           <View style={styles.inputContainer}>

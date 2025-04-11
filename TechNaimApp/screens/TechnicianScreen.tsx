@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Modal, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { View, Text, Button, Modal, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, Alert, Image } from 'react-native';
 import io from 'socket.io-client';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,9 +7,8 @@ import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { technicianStyles as styles } from '../styles/technicianStyles';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'react-native';
-import { useRef } from 'react';
 const moment = require('moment'); // Import moment.js for date formatting
+import AppointmentCard from '../components/AppointmentCard';
 
 
 
@@ -28,6 +27,7 @@ interface Appointment {
         address: string;
         addressCoordinates: { lat: number; lng: number };
         phone: string;
+        country_id: string;
     };
     notes: string;
 }
@@ -236,15 +236,7 @@ const TechnicianScreen = () => {
         );
 
         return sortedAppointments.map((appointment) => (
-            <View key={appointment._id} style={styles.appointmentCard}>
-                <Text>🙎‍♂️Name: {appointment.customerId.name}</Text>
-                <Text>📞Phone Number: {appointment.customerId.phone}</Text>
-                <Text>📍Address: {appointment.customerId.address}</Text>
-                {appointment.notes && (
-                    <Text>📝Notes: {appointment.notes}</Text>
-                )}
-                <Text>🕒Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}</Text>
-            </View>
+            <AppointmentCard key = {appointment._id} appointment={appointment} role='Technician' />
         ));
     };
 
@@ -267,23 +259,7 @@ const TechnicianScreen = () => {
                 <Text style={styles.sectionHeader}>Today's Appointments:</Text>
                 {todaysAppointments.length > 0 ? (
                     todaysAppointments.map((appointment) => (
-                        <View key={appointment._id} style={styles.appointmentCard}>
-                            <Text style={styles.companyTitle}>🙎‍♂️ {appointment.customerId.name}</Text>
-                            <Text style={styles.infoText}>📞 {appointment.customerId.phone}</Text>
-                            <Text style={styles.infoText}>📍 {appointment.customerId.address}</Text>
-                            {appointment.notes && (
-                                <Text style={styles.infoText}>📝 {appointment.notes}</Text>
-                            )}
-                            <Text style={styles.infoText}>
-                                🕒 {new Date(appointment.scheduledTime).toLocaleString()}
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => {finishTask(appointment._id)}}
-                                style={styles.finishAppointmentButton}
-                            >
-                                <Text style = {styles.finishAppointmentButtonText}>Complete Task</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <AppointmentCard key={appointment._id} appointment={appointment} onComplete={finishTask} role='Technician' />
                     ))
                 ) : (
                     <Text style={styles.noAppointments}>No appointments for today.</Text>
