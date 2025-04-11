@@ -116,7 +116,6 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
         let scheduledTime = new Date(startTime);
         let updatedApps = [];
         let prevPos = startCoords;
-        let isFirstAppointment = true;
         if (!prevPos) {
             throw new Error("Technician's starting position is not defined.");
         }

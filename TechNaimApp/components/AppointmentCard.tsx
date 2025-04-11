@@ -94,9 +94,16 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, role, on
             <Text>🕒Scheduled Time: {new Date(appointment.scheduledTime).toLocaleString()}</Text>
 
             {onComplete && (
-                <TouchableOpacity onPress={() => onComplete(appointment._id)} style={styles.finishAppointmentButton}>
-                    <Text style={styles.finishAppointmentButtonText}>Complete Task</Text>
-                </TouchableOpacity>
+                <TouchableOpacity
+                onPress={() => onComplete(appointment._id)}
+                style={styles.finishAppointmentButton}
+              >
+                {role === 'Admin' ? (
+                  <Text style={styles.finishAppointmentButtonText}>Cancel Task</Text>
+                ) : (
+                  <Text style={styles.finishAppointmentButtonText}>Complete Task</Text>
+                )}
+              </TouchableOpacity>
             )}
         </View>
     );

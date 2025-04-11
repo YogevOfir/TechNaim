@@ -32,29 +32,6 @@ interface Appointment {
     notes: string;
 }
 
-// Define a type for items in the queue
-interface QueueItem {
-    appointment: Appointment & { customerCoords?: { lat: number, lng: number } };
-    travelTime: number; // travel time from previous point (in minutes)
-    estimatedArrival: number; // cumulative minutes from now until arrival at this customer
-    queuePosition: number;
-}
-
-interface Customer {
-    _id: string;
-    name: string;
-    address: string;
-    phone: string;
-    addressCoordinates?: { lat: number; lng: number };
-}
-
-
-interface RouteLeg {
-    customer: Customer;
-    distance: number; // Approximate distance in kilometers
-}
-
-
 const TechnicianScreen = () => {
     const [status, setStatus] = useState('Available');
     const [calendarVisible, setCalendarVisible] = useState(false);

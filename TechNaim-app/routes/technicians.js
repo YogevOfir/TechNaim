@@ -70,8 +70,8 @@ router.delete('/:id', authenticate, async (req, res) => {
 
 // Technician updates their location only if conditions are met
 router.post('/update-location', authenticate, async (req, res) => {
-    const { technicianId, lat, lng } = req.body;
-    if (!technicianId || lat === undefined || lng === undefined) {
+    let { technicianId, lat, lng } = req.body;
+    if (!technicianId || !lat || !lng ) {
       return res.status(400).json({ error: 'Invalid data' });
     }
     
