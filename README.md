@@ -30,32 +30,29 @@ TechNaim integrates a Node.js/Express backend with a React Native frontend. It f
   - **Technician:** A dashboard to view today's appointments, update location, and finish tasks.
   - **Customer:** A screen to view appointment details and a live map that shows the technician’s location.
 
-## Screenshots
+## Images
 
 Below are a few screenshots that represent our application. Replace the placeholder image paths with your actual assets.
 
 ### Logo
 
-![Logo](./TechNaimApp/assets/logo.png)
+<p align="center">
+  <img src="./TechNaimApp/assets/logo.png" alt="Logo" width="200px" />
+</p>
 
-### Technician Dashboard
+### Screenshots
 
-![Technician Dashboard](./TechNaimApp/assets/TechNaim_Technician.png)
+<!-- Row 1: Technician Dashboard and Customer Map View -->
+<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 20px;">
+  <img src="./TechNaimApp/assets/TechNaim_Technician.png" alt="Technician Dashboard" width="300px" style="margin: 10px;" />
+  <img src="./TechNaimApp/assets/TechNaim_Customer.png" alt="Customer Map View" width="300px" style="margin: 10px;" />
+</div>
 
-### Customer Map View
-
-![Customer Map](./TechNaimApp/assets/TechNaim_Customer.png)
-
-### Administrator Dashboard
-
-![Admin Dashboard](./TechNaimApp/assets/TechNaim_Admin.png)
-
-### Create Appointment
-
-![Create Appointment Dashboard](./TechNaimApp/assets/TechNaim_CreateAppointment.png)
-
-
-*Place your images in an `assets/images` folder at the root of your repository.*
+<!-- Row 2: Administrator Dashboard and Create Appointment -->
+<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
+  <img src="./TechNaimApp/assets/TechNaim_Admin.png" alt="Administrator Dashboard" width="300px" style="margin: 10px;" />
+  <img src="./TechNaimApp/assets/TechNaim_CreateAppointment.png" alt="Create Appointment" width="300px" style="margin: 10px;" />
+</div>
 
 ## Contributing
 
