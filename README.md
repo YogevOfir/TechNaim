@@ -32,25 +32,24 @@ TechNaim integrates a Node.js/Express backend with a React Native frontend. It f
 
 ## Images
 
-Below are a few screenshots that represent our application. Replace the placeholder image paths with your actual assets.
-
-### Logo
-
+<!-- Centered Logo -->
 <p align="center">
-  <img src="./TechNaimApp/assets/logo.png" alt="Logo" width="200px" />
+  <img src="./TechNaimApp/assets/logo.png" alt="TechNaim Logo" width="150px" />
 </p>
 
-### Screenshots
-
+<!-- Screenshots Heading -->
 <h2 align="center">Screenshots</h2>
 
-<!-- Two side-by-side screenshots -->
+<!-- First row: Technician Dashboard and Customer Map -->
 <p align="center">
-  <!-- Technician Dashboard -->
-  <img src="./TechNaimApp/assets/TechNaim_Technician.png" alt="Technician Dashboard" width="250px" style="margin: 0 10px;" />
+  <img src="./TechNaimApp/assets/TechNaim_Technician.png" alt="Technician Dashboard" width="250px" style="margin: 10px;" />
+  <img src="./TechNaimApp/assets/TechNaim_Customer.png" alt="Customer Map" width="250px" style="margin: 10px;" />
+</p>
 
-  <!-- Customer Map View -->
-  <img src="./TechNaimApp/assets/TechNaim_Customer.png" alt="Customer Map" width="250px" style="margin: 0 10px;" />
+<!-- Second row: Administrator Dashboard and Create Appointment -->
+<p align="center">
+  <img src="./TechNaimApp/assets/TechNaim_Admin.png" alt="Administrator Dashboard" width="250px" style="margin: 10px;" />
+  <img src="./TechNaimApp/assets/TechNaim_CreateAppointment.png" alt="Create Appointment Dashboard" width="250px" style="margin: 10px;" />
 </p>
 
 ## Contributing
