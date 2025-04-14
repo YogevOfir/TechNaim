@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ScrollView, View, Text, StyleSheet, Dimensions, FlatList, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import { customerStyles as styles } from '../styles/customerStyles';
 import AppointmentCard from '../components/AppointmentCard';
+import { useAuth } from '../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface LocationData {
   lat: number;
@@ -41,8 +44,8 @@ interface Appointment {
 }
 
 const socket = io('http://10.0.0.14:5000');
-
 const CustomerScreen = ({ route }: { route: any }) => {
+  const navigation = useNavigation<NavigationProp<any>>();
   const { user } = route.params;
   // change to array in the future
   const [locationData, setLocationData] = useState<LocationMapping>({});
@@ -52,6 +55,7 @@ const CustomerScreen = ({ route }: { route: any }) => {
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const joinedRoomsRef = useRef<string[]>([]);
   const mapRef = useRef<MapView>(null);
+  const { logout } = useAuth();
 
   const fetchAppointments = async () => {
     try {
@@ -71,9 +75,13 @@ const CustomerScreen = ({ route }: { route: any }) => {
     }
   };
 
-  useEffect(() => {
-    console.log('locationData:', locationData);
-  }, [locationData]);
+  
+  const handleLogout = async () => {
+    // You can perform additional cleanup or navigation if necessary.
+    await logout();  
+    // Optionally navigate to the Login screen:
+    navigation.navigate('Login');
+  };
 
 
   // Determine current appointment (for example, the one with state "in-progress")
@@ -182,11 +190,19 @@ const CustomerScreen = ({ route }: { route: any }) => {
 
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Image
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollGeneralContainer}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      <Image 
         source={require('../assets/logo.png')}
         style={styles.logo}
       />
+      
       <Text style={styles.greeting}>Hello {user.name}</Text>
 
       {/* Only show map if there are technician locations available */}
@@ -260,7 +276,8 @@ const CustomerScreen = ({ route }: { route: any }) => {
       ) : (
         <Text>No appointments available.</Text>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

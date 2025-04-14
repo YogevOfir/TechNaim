@@ -7,6 +7,8 @@ import * as Location from 'expo-location';
 import { technicianStyles as styles } from '../styles/technicianStyles';
 import { Ionicons } from '@expo/vector-icons';
 import AppointmentCard from '../components/AppointmentCard';
+import { useAuth } from '../context/AuthContext';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 
 
 
@@ -31,6 +33,7 @@ interface Appointment {
 }
 
 const TechnicianScreen = () => {
+    const navigation = useNavigation<NavigationProp<any>>();
     const [status, setStatus] = useState('Available');
     const [calendarVisible, setCalendarVisible] = useState(false);
     const [selectedDate, setSelectedDate] = useState('');
@@ -39,6 +42,7 @@ const TechnicianScreen = () => {
     const [dailyAppointments, setDailyAppointments] = useState<Appointment[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string>('');
     const [currentTechnicianId, setCurrentTechnicianId] = useState<string>('');
+    const { logout } = useAuth();
 
     const fetchAppointments = async () => {
         try {
@@ -114,6 +118,13 @@ const TechnicianScreen = () => {
             console.error('Error finishing task:', error);
         }
     }
+
+    const handleLogout = async () => {
+        // You can perform additional cleanup or navigation if necessary.
+        await logout();  
+        // Optionally navigate to the Login screen:
+        navigation.navigate('Login');
+    };
 
 
     // Retrieve current user ID from AsyncStorage (assumes it's stored under 'userId')
@@ -298,7 +309,12 @@ const TechnicianScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollGeneralContainer}>
-                <View style={{ marginBottom: 20 }} />
+                <View style={styles.headerContainer}>
+                    <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                    <Ionicons name="log-out-outline" size={24} color="#fff" />
+                    <Text style={styles.logoutButtonText}>Logout</Text>
+                    </TouchableOpacity>
+                </View>
                 <Image
                     source={require('../assets/logo.png')}
                     style={styles.logo}

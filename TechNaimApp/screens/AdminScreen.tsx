@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Image, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, Button, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types/navigationTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminStyles as styles } from '../styles/adminStyles';
 import SearchBar from '../components/SearchBar';
+import { useAuth } from '../context/AuthContext';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Define the navigation type for this screen
 type AdminScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Admin'>;
@@ -43,6 +46,7 @@ const AdminScreen = ({ route }: AdminScreenProps) => {
   const navigation = useNavigation<AdminScreenNavigationProp>();
   const { user } = route.params;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const { logout } = useAuth();
 
 
   const fetchAppointments = async () => {
@@ -67,41 +71,53 @@ const AdminScreen = ({ route }: AdminScreenProps) => {
     fetchAppointments();
   }, []);
 
-  
+  const handleLogout = async () => {
+    // You can perform additional cleanup or navigation if necessary.
+    await logout();
+    // Optionally navigate to the Login screen:
+    navigation.navigate('Login');
+  };
+
+
 
 
   return (
-    <ScrollView style={{ flex: 1, padding: 20 }}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollGeneralContainer}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
         <Image
           source={require('../assets/logo.png')}
           style={styles.logo}
         />
-      </View>
 
-      <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 20 }}>
-        Welcome {user.name}
-      </Text>
+        <Text style={styles.welcome}>
+          Welcome {user.name}
+        </Text>
 
-      {/* Action Buttons */}
-      <View style={{ marginBottom: 15 }}>
-        <Button
-          title="Create New Technician"
-          onPress={() => navigation.navigate('AdminCreateTechnician', { user })}
-        />
-      </View>
+        {/* Action Buttons */}
+        <View style={{ marginBottom: 15 }}>
+          <Button
+            title="Create New Technician"
+            onPress={() => navigation.navigate('AdminCreateTechnician', { user })}
+          />
+        </View>
 
-      <View style={{ marginBottom: 25 }}>
-        <Button
-          title="Create new Appointment"
-          onPress={() => navigation.navigate('CreateAppointment', { user })}
-        />
-      </View>
+        <View style={{ marginBottom: 25 }}>
+          <Button
+            title="Create new Appointment"
+            onPress={() => navigation.navigate('CreateAppointment', { user })}
+          />
+        </View>
 
-      {/* SearchBar (manages internal FlatLists safely) */}
-      <SearchBar appointments={appointments} />
-    </ScrollView>
+        {/* SearchBar (manages internal FlatLists safely) */}
+        <SearchBar appointments={appointments} />
+      </ScrollView>
+    </SafeAreaView>
   );
 
 };

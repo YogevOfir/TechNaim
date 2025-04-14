@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Alert, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { NavigationProp, RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { RootStackParamList } from '../types/navigationTypes';
+import { createAppointmentStyles as styles } from '../styles/createAppointmentStyle';
 
 interface Technician {
   _id: string;
@@ -130,14 +131,22 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 15 }}>Create Appointment</Text>
+    <SafeAreaView style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollGeneralContainer}>
+      <Text style={styles.title}>Create Appointment</Text>
 
       {/* Select Technician */}
       <Text>Select Technician:</Text>
       {technicians.map(tech => (
-        <TouchableOpacity key={tech._id} onPress={() => setSelectedTechnician(tech)}>
-          <Text style={{ padding: 10, backgroundColor: selectedTechnician?._id === tech._id ? 'lightblue' : 'white' }}>
+        <TouchableOpacity
+        key={tech._id}
+        onPress={() => setSelectedTechnician(tech)}
+        style={[
+          styles.buttonWrapper,
+          {backgroundColor: selectedTechnician?._id === tech._id ? 'lightblue' : 'white' }
+        ]}
+        >
+          <Text style={{ padding: 10 }}>
             {tech.userId.name}
           </Text>
         </TouchableOpacity>
@@ -146,8 +155,15 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
       {/* Select Customer */}
       <Text style={{ marginTop: 20 }}>Select Customer:</Text>
       {customers.map(customer => (
-        <TouchableOpacity key={customer._id} onPress={() => setSelectedCustomer(customer)}>
-          <Text style={{ padding: 10, backgroundColor: selectedCustomer?._id === customer._id ? 'lightgreen' : 'white' }}>
+        <TouchableOpacity
+        key={customer._id}
+        onPress={() => setSelectedCustomer(customer)}
+        style={[
+          styles.buttonWrapper,
+          {backgroundColor: selectedCustomer?._id === customer._id ? 'lightgreen' : 'white' }
+        ]}
+        >
+          <Text style={{ padding: 10 }}>
             {customer.name}
           </Text>
         </TouchableOpacity>
@@ -166,10 +182,10 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
       />
 
       {/* Appointment Notes */}
-      <Text style={{ marginTop: 20 }}>Notes for the appointment:</Text>
+      <Text style={ styles.notesTextHeader }>Notes for the appointment:</Text>
       <TextInput 
         multiline
-        style={{ height: 100, padding: 10, borderColor: 'gray', borderWidth: 1 }}
+        style={styles.notesHolder}
         placeholder="Enter notes here..."
         value={notes}
         onChangeText={setNotes}
@@ -177,8 +193,17 @@ const CreateAppointmentScreen = ({ navigation, route }: Props) => {
       
       <View style={{ marginTop: 20 }}>
         <Button title="Create Appointment" onPress={createAppointment} />
+
+        <TouchableOpacity 
+          style={styles.cancelButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
       </View>
+      
     </ScrollView>
+    </SafeAreaView>
   );
 };
 

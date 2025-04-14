@@ -132,4 +132,23 @@ export const technicianStyles = StyleSheet.create({
         height: 300,
         marginBottom: 20,
       },
+      headerContainer: {
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        alignSelf: 'stretch',
+      },
+      logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#e74c3c', // red color for logout
+        padding: 8,
+        borderRadius: 5,
+      },
+      logoutButtonText: {
+        color: '#fff',
+        marginLeft: 5,
+        fontSize: 16,
+        fontWeight: '600',
+      },
 });

@@ -98,6 +98,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
         style={styles.keyboardAvoidingView}
       >
         <View style={styles.contentContainer}>
+          <View style={{ marginBottom: 20 }} />
           <View style={styles.headerContainer}>
             <Image
               source={require('../assets/logo.png')}
