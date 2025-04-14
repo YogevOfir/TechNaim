@@ -30,15 +30,14 @@ TechNaim integrates a Node.js/Express backend with a React Native frontend. It f
   - **Technician:** A dashboard to view today's appointments, update location, and finish tasks.
   - **Customer:** A screen to view appointment details and a live map that shows the technician’s location.
 
-## Images
+## Logo
 
 <!-- Centered Logo -->
 <p align="center">
   <img src="./TechNaimApp/assets/logo.png" alt="TechNaim Logo" width="150px" />
 </p>
 
-<!-- Screenshots Heading -->
-<h2 align="center">Screenshots</h2>
+## Screenshots
 
 <!-- First row: Technician Dashboard and Customer Map -->
 <p align="center">
