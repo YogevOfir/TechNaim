@@ -36,19 +36,24 @@ Below are a few screenshots that represent our application. Replace the placehol
 
 ### Logo
 
-![Logo](./assets/images/logo.png)
+![Logo](./TechNaimApp/assets/logo.png)
 
 ### Technician Dashboard
 
-![Technician Dashboard](./assets/images/technician-dashboard.png)
+![Technician Dashboard](./TechNaimApp/assets/TechNaim_Technician.png)
 
 ### Customer Map View
 
-![Customer Map](./assets/images/customer-map.png)
+![Customer Map](./TechNaimApp/assets/TechNaim_Customer.png)
 
 ### Administrator Dashboard
 
-![Admin Dashboard](./assets/images/admin-dashboard.png)
+![Admin Dashboard](./TechNaimApp/assets/TechNaim_Admin.png)
+
+### Create Appointment
+
+![Create Appointment Dashboard](./TechNaimApp/assets/TechNaim_CreateAppointment.png)
+
 
 *Place your images in an `assets/images` folder at the root of your repository.*
 
