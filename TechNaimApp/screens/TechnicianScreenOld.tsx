@@ -113,7 +113,7 @@ const TechnicianScreen = () => {
     let location = await Location.getCurrentPositionAsync({});
     const token = await AsyncStorage.getItem('token');
     try {
-      const response = await fetch('http://10.0.0.14:5000/api/technician//update-location', {
+      const response = await fetch('http://10.0.0.14:5000/api/technician/update-location', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

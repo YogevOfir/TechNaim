@@ -11,6 +11,7 @@ router.use('/auth', authRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/technicians', technicianRoutes);
 router.use('/customers', customerRoutes);
+router.use('/schedule', scheduleRoutes);
 
 
 

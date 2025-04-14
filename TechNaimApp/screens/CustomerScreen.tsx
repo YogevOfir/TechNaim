@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { ScrollView, View, Text, StyleSheet, Dimensions, FlatList, TouchableOpacity } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,10 @@ import AppointmentCard from '../components/AppointmentCard';
 interface LocationData {
   lat: number;
   lng: number;
+}
+
+interface LocationMapping {
+  [technicianId: string]: LocationData;
 }
 
 interface Appointment {
@@ -36,18 +40,18 @@ interface Appointment {
   }
 }
 
-const socket = io('http://10.0.0.14:5000/customer');
+const socket = io('http://10.0.0.14:5000');
 
 const CustomerScreen = ({ route }: { route: any }) => {
   const { user } = route.params;
-  const [locationData, setLocationData] = useState<LocationData | null>(null);
+  // change to array in the future
+  const [locationData, setLocationData] = useState<LocationMapping>({});
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null);
+  const [inProgressAppointments, setInProgressAppointments] = useState<Appointment[]>([]);
   const [estimatedArrival, setEstimatedArrival] = useState<number | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
-
-  const roomJoined = useRef<string | null>(null);
-  const joinCountRef = useRef<number>(0);
+  const joinedRoomsRef = useRef<string[]>([]);
+  const mapRef = useRef<MapView>(null);
 
   const fetchAppointments = async () => {
     try {
@@ -67,91 +71,177 @@ const CustomerScreen = ({ route }: { route: any }) => {
     }
   };
 
+  useEffect(() => {
+    console.log('locationData:', locationData);
+  }, [locationData]);
+
+
   // Determine current appointment (for example, the one with state "in-progress")
   useEffect(() => {
     if (appointments.length > 0) {
-      const appointmentInProgress = appointments.find(appointment => appointment.status === 'in-progress');
-      setCurrentAppointment(appointmentInProgress || null);
+      const inProgress = appointments.filter(appointment => appointment.status === 'in-progress');
+      setInProgressAppointments(inProgress);
+    }
+    else {
+      setInProgressAppointments([]);
     }
   }, [appointments]);
 
-  useEffect(() => {
-    // Fetch appointments when the component mounts or when the user changes.
-    if (currentAppointment && currentAppointment._id !== roomJoined.current) {
-      joinCountRef.current++;
-      console.log('Joining room for appointment:', currentAppointment._id);
-      console.log('Join count:', joinCountRef.current);
-      socket.emit('JoinRoom', currentAppointment._id);  // Match event name exactly with server.
-      roomJoined.current = currentAppointment._id;
-    }
-  }, [currentAppointment]);
 
   // Listen for location updates from the technician.
   useEffect(() => {
     fetchAppointments();
+  }, []);
 
+
+  // Handle joining and leaving rooms based on inProgressAppointments changes
+  useEffect(() => {
+    // List of technician IDs needed from inProgressAppointments:
+    const newRooms = inProgressAppointments.map(app => app.technicianId._id);
+
+    // Join any new room that hasn't been joined already
+    newRooms.forEach((room) => {
+      if (!joinedRoomsRef.current.includes(room)) {
+        socket.emit('joinRoom', { role: 'customer', technicianId: room });
+        console.log(`Customer joined room: ${room}`);
+        joinedRoomsRef.current.push(room);
+      }
+    });
+
+    // Check for rooms that are in joinedRoomsRef but not in newRooms
+    joinedRoomsRef.current.forEach((room) => {
+      if (!newRooms.includes(room)) {
+        socket.emit('leaveRoom', { technicianId: room });
+        console.log(`Customer left room: ${room}`);
+        // Remove that room from our list of joined rooms
+        joinedRoomsRef.current = joinedRoomsRef.current.filter(r => r !== room);
+      }
+    });
+
+    // If no in-progress appointments exist, disconnect completely
+    if (newRooms.length === 0) {
+      console.log('No active in-progress appointments; disconnecting socket.');
+      // Optional: If you plan to reconnect later, you may wish to disconnect only the rooms.
+      // socket.disconnect();
+      joinedRoomsRef.current = [];
+    }
+
+  }, [inProgressAppointments]);
+
+
+  // Listen for location updates from the technician(s).
+  useEffect(() => {
     socket.on('locationUpdate', (data) => {
       console.log('Received location update:', data);
-      // Process the queue if provided.
-      if (data.queue && Array.isArray(data.queue) && currentAppointment) {
-        // Find the queue entry for the current customer's appointment.
-        const myQueueInfo = data.queue.find((item: any) => item.appointment._id === currentAppointment._id);
+      
+      // If location update includes a queue, process it (adapt as needed)
+      if (data.queue && Array.isArray(data.queue) && inProgressAppointments.length) {
+        const myQueueInfo = data.queue.find((item: any) => 
+          inProgressAppointments.some(app => app._id === item.appointment._id)
+        );
         if (myQueueInfo) {
           setEstimatedArrival(myQueueInfo.estimatedArrival);
           setQueuePosition(myQueueInfo.queuePosition);
         }
       }
-      // Update technician location on map if the update is for this technician.
-      console.log('trying to update location data');
-      console.log('data.technicianId:', data.technicianId);
-      console.log('currentAppointment.technicianId:', currentAppointment?.technicianId._id);
-      if (currentAppointment && data.technicianId === currentAppointment.technicianId._id) {
-        console.log('Updating location data:', data.lat, data.lng);
-        setLocationData({ lat: data.lat, lng: data.lng });
+      
+      // Update the location only if the update is from a technician with an active appointment.
+      if (data.technicianId && inProgressAppointments.some(app => app.technicianId._id === data.technicianId)) {
+        setLocationData(prev => ({
+          ...prev,
+          [data.technicianId]: { lat: data.lat, lng: data.lng }
+        }));
       }
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('locationUpdate');
     };
-  }, []);
+  }, [inProgressAppointments]);
+
+   // Handler for tech tab press: move the map view to the technician's location
+  const handleTechTabPress = (techId: string) => {
+    const loc = locationData[techId];
+    if (loc && mapRef.current) {
+      const region: Region = {
+        latitude: loc.lat,
+        longitude: loc.lng,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      };
+      // Animate the map to the selected region
+      mapRef.current.animateToRegion(region, 1000);  // 1 second animation
+    }
+  };
+
+  const uniqueTechnicians = Array.from(new Set(inProgressAppointments.map(app => app.technicianId._id)))
+    .map(techId => {
+      return inProgressAppointments.find(app => app.technicianId._id === techId)?.technicianId;
+    })
+    .filter(Boolean);
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Title */}
-      {/* <Text style={styles.greeting}>Hello {user.name}</Text> */}
       <Image
         source={require('../assets/logo.png')}
         style={styles.logo}
       />
       <Text style={styles.greeting}>Hello {user.name}</Text>
 
-      {/* Display appointments for today */}
-      {currentAppointment ? (
+      {/* Only show map if there are technician locations available */}
+      {uniqueTechnicians.length && Object.keys(locationData).length ? (
         <>
           <Text style={styles.info}>
-            Appointment with {currentAppointment.technicianId.userId.name} from {currentAppointment.technicianId.companyId.name}
+            {inProgressAppointments.map(app =>
+              `Appointment with ${app.technicianId.userId.name} from ${app.technicianId.companyId.name}`
+            ).join(' | ')}
           </Text>
-          {locationData ? (
-            <MapView
-              style={styles.map}
-              region={{
-                latitude: locationData.lat,
-                longitude: locationData.lng,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-            >
-              <Marker
-                coordinate={{ latitude: locationData.lat, longitude: locationData.lng }}
-                title={currentAppointment.technicianId.userId.name}
-                description={currentAppointment.technicianId.companyId.name}
-              />
-            </MapView>
-          ) : (
-            <Text style={styles.loadingText}>Waiting for technician location...</Text>
-          )}
-          {/* Display queue information for the customer */}
+          
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            // Center on the first technician's location if available
+            initialRegion={{
+              latitude: locationData[inProgressAppointments[0].technicianId._id]?.lat || 0,
+              longitude: locationData[inProgressAppointments[0].technicianId._id]?.lng || 0,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            }}
+          >
+            {Object.entries(locationData).map(([techId, loc]) => {
+              const techAppointment = inProgressAppointments.find(app => app.technicianId._id === techId);
+              if (!techAppointment) return null;
+
+              return (
+                <Marker
+                  key={techId}
+                  coordinate={{ latitude: loc.lat, longitude: loc.lng }}
+                  title={techAppointment.technicianId.userId.name}
+                  description={techAppointment.technicianId.companyId.name}
+                />
+              );
+            })}
+          </MapView>
+
+          {/* Horizontal scroll of technician tabs */}
+          <FlatList
+            data={uniqueTechnicians}
+            horizontal
+            keyExtractor={(item) => item?._id ?? 'unknown'}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.techTab}
+                onPress={() => handleTechTabPress(item?._id ?? 'unknown')}
+              >
+                <Text style={styles.techTabText}>{item?.userId?.name}</Text>
+                <Text style={styles.techTabSubText}>{item?.companyId?.name}</Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.techTabsContainer}
+            showsHorizontalScrollIndicator={false}
+          />
+
           {queuePosition !== null && estimatedArrival !== null && (
             <Text style={styles.queueText}>
               Your position in queue: {queuePosition}. Estimated arrival time: {estimatedArrival} min.
@@ -159,13 +249,13 @@ const CustomerScreen = ({ route }: { route: any }) => {
           )}
         </>
       ) : (
-        <Text style={styles.info}>No appointment for today after 8AM.</Text>
+        <Text style={styles.info}>No active technician location available.</Text>
       )}
 
       <Text style={styles.header}>Appointments:</Text>
       {appointments.length > 0 ? (
         appointments.map((appointment) => (
-          <AppointmentCard key={appointment._id} appointment={appointment} role='Customer' />
+          <AppointmentCard key={appointment._id} appointment={appointment} role="Customer" />
         ))
       ) : (
         <Text>No appointments available.</Text>

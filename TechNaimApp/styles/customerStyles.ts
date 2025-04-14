@@ -102,4 +102,25 @@ export const customerStyles = StyleSheet.create({
         height: 300,
         marginBottom: 20,
     },
+    techTabsContainer: {
+        paddingVertical: 10,
+      },
+      techTab: {
+        backgroundColor: '#FFF',
+        borderRadius: 8,
+        padding: 10,
+        marginRight: 8,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      techTabText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+      },
+      techTabSubText: {
+        fontSize: 12,
+        color: '#666',
+      },
 });

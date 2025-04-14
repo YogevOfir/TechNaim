@@ -6,54 +6,119 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const routes = require('./routes'); // import all routes
 const { updatePendingToInProgress } = require('./schedules/appointmentStatusUpdate');
-
 const app = express();
-app.use(cors());
+
+
 app.use(express.json());
+app.use(require('cors')());
+app.use('/api/', routes); // Ensure routes contains your schedule route
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "*",
+    methods: ['GET, POST'],
   }
 });
 
-const technicianNamespace = io.of('/technician');
-const customerNamespace = io.of('/customer');
 
-technicianNamespace.on('connection', (socket) => {
-  console.log('Technician connected:', socket.id);
-
-  socket.on('locationUpdate', (locationData) => {
-    // Broadcast the location update to all technicians
-    console.log('Location update from technician:', locationData);
-    customerNamespace.to(locationData.technicianId).emit('locationUpdate', locationData);
-  });
-
-  socket.on('disconnect', () => {
-    // console.log('Technician disconnected:', socket.id);
-  });
-}
-);
-
-customerNamespace.on('connection', (socket) => {
-  console.log('Customer connected:', socket.id);
-
-  socket.on('JoinRoom', (roomId) => {
-    socket.join(roomId);
-    console.log(`Customer ${socket.id} joined room ${roomId}`);
-  });
-});
-
-
-// Listen for connections via Socket.IO
 io.on('connection', (socket) => {
-  console.log('New client connected');
+  console.log(`New client connected: ${socket.id}`);
+
+  /**
+   * Event: joinRoom
+   * Data payload should include:
+   *   - role: "technician" or "customer"
+   *   - technicianId: (string) which defines the room name.
+   *
+   * For a technician: They always join the room with their own technicianId.
+   * For a customer: They only join if they currently have an in-progress appointment
+   *              with that technician. (Validation against your DB could be added here.)
+   */
+
+  socket.on('joinRoom', (data) => {
+    if (!data || !data.technicianId || !data.role) {
+      console.error('Invalid joinRoom data:', data);
+      return;
+    }
+
+    const { technicianId, role } = data;
+    // Join the room using technicianId as the room name.
+    socket.join(technicianId);
+    console.log(`${role} socket ${socket.id} joined room ${technicianId}`);
+
+    // Store some information on the socket for later validation or debugging.
+    socket.role = role;
+    // For a technician, store the room (should be only one room per tech)
+    if (role === 'technician') {
+      socket.technicianId = technicianId;
+    }
+    // For a customer, maintain an array of technician rooms they are in.
+    if (role === 'customer') {
+      socket.technicianIds = socket.technicianIds || [];
+      if (!socket.technicianIds.includes(technicianId)) {
+        socket.technicianIds.push(technicianId);
+      }
+    }
+  });
+
+  /**
+   * Event: leaveRoom
+   * Data payload: { technicianId }
+   *
+   * When a customer (or even technician) no longer shares an in-progress
+   * appointment with the technician, they can leave the room.
+   */
+  socket.on('leaveRoom', (data) => {
+    if (!data || !data.technicianId) {
+      console.error('Invalid leaveRoom data:', data);
+      return;
+    }
+    const { technicianId } = data;
+    socket.leave(technicianId);
+    console.log(`Socket ${socket.id} left room ${technicianId}`);
+
+    if (socket.role === 'customer' && socket.technicianIds) {
+      socket.technicianIds = socket.technicianIds.filter((id) => id !== technicianId);
+    }
+  });
+
+  /**
+   * Event: locationUpdate
+   * Data payload is expected to include:
+   *   - technicianId: (string)
+   *   - lat: (number)
+   *   - lng: (number)
+   *   - (optionally: queue information, appointment details, etc.)
+   *
+   * When a technician sends a location update, broadcast the update to all
+   * sockets in the room (i.e. customers) except the sender.
+   */
+  socket.on('locationUpdate', (data) => {
+    if (!data || !data.technicianId || !data.lat || !data.lng) {
+      console.error('Invalid locationUpdate data:', data);
+      return;
+    }
+    const { technicianId, lat, lng } = data;
+    console.log(`Received location update from technician ${technicianId}: [${lat}, ${lng}]`);
+
+    // Broadcast the location update to everyone in the room except the sender.
+    socket.to(technicianId).emit('locationUpdate', { technicianId, lat, lng });
+  });
+
+  /**
+   * Handle disconnecting.
+   * This will automatically remove the socket from any joined rooms.
+   * You might add additional cleanup if you keep any global maps of connected sockets.
+   */
   socket.on('disconnect', () => {
-    console.log('Client disconnected');
+    console.log(`Client disconnected: ${socket.id}`);
+    // Optionally, handle cleanup if needed.
   });
 });
+
+
 
 
 
@@ -69,9 +134,9 @@ mongoose.connect(process.env.MONGO_URI)
     }
   })
   .catch(err => console.error('Could not connect to MongoDB', err));
-  
-  // Routes
-  app.use('/api/', routes); // this is the route for the authRoutes file
+
+// Routes
+app.use('/api/', routes); // this is the route for the authRoutes file
 
 
 const PORT = process.env.PORT || 5000;

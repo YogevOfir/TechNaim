@@ -4,7 +4,7 @@ const Appointment = require('../models/appointmentModel'); // Assuming you have 
 const authenticate = require('../middlewares/authMiddleware');
 const Technician = require('../models/technicianModel')
 const schedule = require('node-schedule'); // For scheduling tasks
-const { recalcScheduleForTechnician } = require('./schedule');
+const { recalcScheduleForTechnician } = require('./scheduleFunc');
 
 // Create an appointment
 router.post('/', authenticate, async (req, res) => {
@@ -77,7 +77,7 @@ router.get('/customer', authenticate, async (req, res) => {
         //     }
         // });
 
-        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed' && new Date(app.scheduledTime) > new Date());
+        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed');
         const sortedAppointments = filteredAppointments.sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
 
         res.status(200).json({ appointments: sortedAppointments });
@@ -111,7 +111,7 @@ router.get('/technician', authenticate, async (req, res) => {
         //     }
         // });
 
-        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed' && new Date(app.scheduledTime) > new Date());
+        const filteredAppointments = appointments.filter(app => app.status !== 'canceled' && app.status !== 'completed');
         const sortedAppointments = filteredAppointments.sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
 
         const todaysAppointments = sortedAppointments.filter(app => {

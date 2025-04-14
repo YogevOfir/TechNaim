@@ -1,67 +1,91 @@
-
-// import * as Location from 'expo-location';
+// routes/schedule.js
 const express = require('express');
+const router = express.Router();
 const Appointment = require('../models/appointmentModel'); // Appointment model
 const Technician = require('../models/technicianModel'); // Technician model
-const User = require('../models/userModel'); // User model
-const router = express.Router();
+const moment = require('moment-timezone');
+const fetch = require('node-fetch'); // Ensure you install v2: npm install node-fetch@2
 
-/**
- * Recalculate the schedule for a technician on a given appointment date.
- * For future appointments, use the technician’s stored addressCoordinates and start at 8:00 AM.
- * For today (after 8:00 AM), use the technician’s current location and current time.
- *
- * @param {String} technicianId - ID of the technician.
- * @param {String} appointmentDate - ISO date string of the appointment.
- * @param {Object} [currentLocation] - Optional {lat, lng} if appointment is today and current location is provided.
- * @returns {Promise<Array>} - Returns updated appointments schedule.
- */
-async function recalcScheduleForTechnician(technicianId, appointmentDate, currentLocation) {
+// Helper: Haversine distance
+function haversineDistance(lat1, lng1, lat2, lng2) {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371; // kilometers
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// Helper: Get travel time in minutes between two coordinates.
+async function getTravelTime(origin, destination) {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const originStr = `${origin.lat},${origin.lng}`;
+    const destinationStr = `${destination.lat},${destination.lng}`;
+    console.log("apiKey:", apiKey, "Origin:", originStr, "Destination:", destinationStr);
+    // Basic check for valid values (if not, return a fallback value).
+    if (!origin.lat || !origin.lng || !destination.lat || !destination.lng) {
+        console.error("Origin or destination coordinates are invalid.");
+        return Infinity;
+    }
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destinationStr}&key=${apiKey}`;
     try {
-        let apptDate = new Date(appointmentDate);
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+            const leg = data.routes[0].legs[0];
+            return Math.ceil(leg.duration.value / 60);
+        }
+    } catch (error) {
+        console.error("Error in getTravelTime:", error);
+    }
+    return Infinity;
+}
+
+// PUT /api/schedule/calculateSchedule
+router.put('/calculateSchedule', async (req, res) => {
+    try {
+        const { technicianId, appointmentDate, currentLocation } = req.body;
+        if (!technicianId || !appointmentDate) {
+            return res.status(400).json({ message: "technicianId and appointmentDate are required." });
+        }
+
+        const apptDate = new Date(appointmentDate);
         const now = new Date();
 
         let startCoords, startTime;
-
-        // Determine if the appointment is today and current time is after 8:00.
         const isToday = now.toDateString() === apptDate.toDateString();
-        if (isToday && now.getHours() >= 8) {
-            startTime = now; // Use current time for today
-        }
-        else {
-            apptDate.setHours(8, 0, 0, 0); // Set to start of the day for future appointments
-            startTime = apptDate;
-        }
-        if (currentLocation && currentLocation.lat && currentLocation.lng) {
-            console.log("Using current location for today.");
+
+        if (isToday && now.getHours() >= 8 && currentLocation) {
             startCoords = currentLocation;
+            startTime = now;
         } else {
-            // Otherwise, fetch the technician's stored coordinates from their record.
             const technician = await Technician.findById(technicianId);
             if (!technician) {
-                throw new Error("Technician not found");
+                return res.status(404).json({ message: "Technician not found" });
             }
-            console.log("techncian.location:", technician.location);
-            if (!technician.location || !technician.location.lat || !technician.location.lng) {
-                console.log("Technician's location is not defined. Using user address coordinates instead.");
-                const userOfTech = await User.findById(technician.userId);
-                if (!userOfTech) {
-                    throw new Error("User of technician not found");
-                }
-                startCoords = userOfTech.addressCoordinates;
-            } else {
+            // Prefer technician.location (which is updated periodically) but fallback to addressCoordinates
+            if (technician.location && technician.location.lat && technician.location.lng) {
                 startCoords = technician.location;
+            } else if (technician.addressCoordinates) {
+                startCoords = technician.addressCoordinates;
+            } else {
+                return res.status(400).json({ message: "No starting coordinates available for the technician." });
             }
+            // For future dates, start at 8:00 AM on the appointment day.
+            apptDate.setHours(8, 0, 0, 0);
+            startTime = apptDate;
         }
 
-        // Get pending appointments for the technician on that day:
-        let dayStart = new Date(appointmentDate);
-        dayStart.setHours(8, 0, 0, 0); // Set to start of the day
-    
-        let dayEnd = new Date(dayStart);
-        dayEnd.setHours(23, 59, 59, 999); // Set to end of the day
+        // Define the day range for the appointment date.
+        const dayStart = new Date(appointmentDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
 
-
+        // For today use in-progress; for future days, use pending appointments.
         const pendingApps = await Appointment.find({
             technicianId,
             scheduledTime: { $gte: dayStart, $lt: dayEnd },
@@ -70,11 +94,11 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
 
         if (!pendingApps.length) {
             console.log("No pending appointments for this technician on that day.");
-            return [];
+            return res.status(200).json({ computedSchedule: [] });
         }
 
-        // Prepare an array of customers from the appointments:
-        let customers = pendingApps
+        // Build array of customers from appointments
+        const customers = pendingApps
             .filter(app => app.customerId.addressCoordinates)
             .map(app => ({
                 _id: app.customerId._id.toString(),
@@ -83,12 +107,13 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
                 coordinates: app.customerId.addressCoordinates
             }));
 
-        // Calculate route using a greedy nearest neighbor algorithm:
+        if (customers.length === 0) {
+            return res.status(400).json({ message: "No valid customer coordinates available for this day." });
+        }
+
+        // Calculate the route using a greedy nearest-neighbor algorithm.
         let route = [];
         let currentPos = startCoords;
-        if (!currentPos) {
-            throw new Error("Technician's starting position is not defined.");
-        }
         let remaining = [...customers];
         while (remaining.length > 0) {
             let bestCandidate = null;
@@ -111,24 +136,19 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
             remaining = remaining.filter(c => c._id !== bestCandidate._id);
         }
 
-        // With the route, calculate scheduled times:
-        const WORKING_TIME = 30; // minutes to add after each appointment
+        // Calculate scheduled times along the route.
+        const WORKING_TIME = 30; // minutes to add after each appointment.
         let scheduledTime = new Date(startTime);
-        let updatedApps = [];
+        const updatedApps = [];
         let prevPos = startCoords;
-        if (!prevPos) {
-            throw new Error("Technician's starting position is not defined.");
-        }
         for (const leg of route) {
             const travelTime = await getTravelTime(prevPos, leg.customer.coordinates);
-            if (travelTime === Infinity ) {
-                console.error(`Error: Unable to calculate travel time for ${leg.customer.name}. Skipping this appointment.`);
+            if (!isFinite(travelTime)) {
+                console.error(`Invalid travel time from ${JSON.stringify(prevPos)} to ${JSON.stringify(leg.customer.coordinates)}. Skipping.`);
                 continue;
             }
-            console.log('StartTime: ', scheduledTime, ' TravelTime: ' , travelTime);
             scheduledTime = new Date(scheduledTime.getTime() + travelTime * 60000);
-            console.log('ScheduledTime:', scheduledTime);
-            // Find the corresponding appointment and update scheduledTime.
+            // Find the corresponding appointment
             const app = pendingApps.find(app =>
                 app.customerId._id.toString() === leg.customer._id
             );
@@ -136,16 +156,12 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
                 app.scheduledTime = scheduledTime.toISOString();
                 updatedApps.push(app);
             }
-            // Add the fixed working time.
-            
+            // Add fixed working time
             scheduledTime = new Date(scheduledTime.getTime() + WORKING_TIME * 60000);
-            
-            
-            isFirstAppointment = false;
             prevPos = leg.customer.coordinates;
         }
 
-        // Bulk update updated appointments in MongoDB:
+        // Bulk update these appointments in MongoDB.
         const bulkOps = updatedApps.map(app => ({
             updateOne: {
                 filter: { _id: app._id },
@@ -154,48 +170,11 @@ async function recalcScheduleForTechnician(technicianId, appointmentDate, curren
         }));
         await Appointment.bulkWrite(bulkOps);
 
-        return updatedApps;
+        return res.status(200).json({ message: "Schedule calculated successfully", computedSchedule: updatedApps });
     } catch (error) {
         console.error("Error in recalcScheduleForTechnician:", error);
-        throw error;
+        return res.status(500).json({ message: "Server error" });
     }
-}
+});
 
-// Helper: Haversine distance (same as before)
-function haversineDistance(lat1, lng1, lat2, lng2) {
-    const toRad = (value) => (value * Math.PI) / 180;
-    const R = 6371; // in kilometers
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// Helper: Get travel time (as earlier)
-async function getTravelTime(origin, destination) {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    const originStr = `${origin.lat},${origin.lng}`;
-    const destinationStr = `${destination.lat},${destination.lng}`;
-    console.log("apiKey:", apiKey, "Origin:", originStr, "Destination:", destinationStr);
-    if (!originStr || !destinationStr || originStr.lat === null || originStr.lng === null || destinationStr.lat === null || destinationStr.lng === null) {
-        console.error("Origin or destination coordinates are not defined.");
-        return Infinity;
-    }
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destinationStr}&key=${apiKey}`;
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.routes && data.routes.length > 0) {
-            const leg = data.routes[0].legs[0];
-            return Math.ceil(leg.duration.value / 60);
-        }
-    } catch (error) {
-        console.error("Error in getTravelTime:", error);
-    }
-    return Infinity;
-}
-
-module.exports = { recalcScheduleForTechnician };
+module.exports = router;

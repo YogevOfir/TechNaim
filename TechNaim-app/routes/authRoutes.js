@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
       const { email, password } = req.body;
 
       // Check if user exists
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) return res.status(400).json({ message: 'Invalid email' });
 
       // Check if password is correct
@@ -54,7 +54,7 @@ router.post('/signup', async (req, res) => {
     console.log('Recieved signup request', req.body);
 
     // Check if email already exists
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: email.toLowerCase() });
     if (user) return res.status(400).json({ message: 'This email already has an account' });
 
     // Hash password before saving
@@ -64,7 +64,7 @@ router.post('/signup', async (req, res) => {
     user = new User({ 
       name, 
       country_id,
-      email, 
+      email: email.toLowerCase(),
       phone,
       address,
       addressCoordinates: await getCoordinatesFromAddress(address), // Get coordinates from address

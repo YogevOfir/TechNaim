@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Modal, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, Alert, Image } from 'react-native';
+import { View, Text, Button, Modal, TouchableOpacity, ScrollView, SafeAreaView, Alert, Image } from 'react-native';
 import io from 'socket.io-client';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import Constants from 'expo-constants';
 import { technicianStyles as styles } from '../styles/technicianStyles';
 import { Ionicons } from '@expo/vector-icons';
-const moment = require('moment'); // Import moment.js for date formatting
 import AppointmentCard from '../components/AppointmentCard';
 
 
 
-const socket = io('http://10.0.0.14:5000/technician');
+const socket = io('http://10.0.0.14:5000');
 
 const WORKING_TIME = 30; // working time (in minutes) between appointments
 
@@ -61,6 +59,7 @@ const TechnicianScreen = () => {
             setAppointments(data.appointments);
 
             setTodaysAppointments(data.todaysAppointments);
+
         } catch (error) {
             console.error('Error fetching appointments:', error);
         }
@@ -70,20 +69,27 @@ const TechnicianScreen = () => {
     async function updateLocationOnServer(location: any) {
         const token = await AsyncStorage.getItem('token');
         try {
-            const response = await fetch('http://10.0.0.14:5000/api/technician//update-location', {
+            console.log("Updating location for technician:", currentTechnicianId , "on location:", location);
+            const response = await fetch('http://10.0.0.14:5000/api/technicians/update-location', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(location),
+                body: JSON.stringify({
+                    lat: location.lat,
+                    lng: location.lng,
+                    technicianId: currentTechnicianId, // Ensure that currentTechnicianId is set from AsyncStorage on login
+                }),
             });
             if (!response.ok) {
-                throw new Error('Failed to update location on server');
+                const text = await response.text();
+                console.error('Response not ok, status:', response.status, 'body:', text);
+                throw new Error('Failed to update location on serverrr');
             }
             console.log('Sent location update successfully to the server.');
         } catch (error) {
-            console.error('Error sending location update:', error);
+            console.error('Error sending locationnn update:', error);
         }
     }
 
@@ -103,7 +109,7 @@ const TechnicianScreen = () => {
             console.log('Task finished successfully on the server.');
 
             fetchAppointments();
-        } 
+        }
         catch (error) {
             console.error('Error finishing task:', error);
         }
@@ -130,53 +136,125 @@ const TechnicianScreen = () => {
     }, []);
 
 
+
+    // -------------------- Helper Function --------------------
     useEffect(() => {
-        const interval = setInterval(async () => {
-            const inProgressAppointment = todaysAppointments.find(app => app.status === 'in-progress');
-            if (inProgressAppointment) {
-                let location = await Location.getCurrentPositionAsync({});
-                updateLocationOnServer(location);
-                sendLocationUpdate(location);
+        if (todaysAppointments && todaysAppointments.length > 0) {
+          console.log('todaysAppointments changed, triggering immediate schedule recalculation and location update.');
+          (async () => {
+            // Get current location if there is an in-progress appointment (after 8 AM)
+            const inProgress = todaysAppointments.find(app => app.status === 'in-progress');
+            if (!inProgress) return;
+            if( currentTechnicianId) {
+                socket.emit('joinRoom', { role: 'tech', technicianId: currentTechnicianId });
+                console.log(`Technician joined room: ${currentTechnicianId}`);
             }
-            else {
-                clearInterval(interval);
+            let permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status !== 'granted') {
+              console.error("Location permission not granted on immediate update.");
+              return;
             }
-        }, 10 * 60 * 1000); // every 10 minutes
-        return () => clearInterval(interval);      
-    }, [todaysAppointments]);
+            const loc = await Location.getCurrentPositionAsync({});
+            const currentLoc = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            // Update location to server and emit
+            await updateLocationOnServer(currentLoc);
+            await sendLocationUpdate(currentLoc);
+            
+            // Trigger schedule recalculation for today using current location
+            const token = await AsyncStorage.getItem('token');
+            const appointmentDate = new Date().toISOString(); // today's appointments
+            const requestBody = {
+              technicianId: currentTechnicianId,
+              appointmentDate,
+              currentLocation: currentLoc,
+            };
+      
+            console.log('Immediately calling schedule endpoint with:', requestBody);
+            const response = await fetch('http://10.0.0.14:5000/api/schedule/calculateSchedule', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(requestBody),
+            });
+            if (!response.ok) {
+              console.error('Immediate schedule calculation failed.');
+              return;
+            }
+            const result = await response.json();
+            console.log("Immediate schedule recalculated:", result.computedSchedule);
+          })();
+        }
+      }, [todaysAppointments, currentTechnicianId, currentUserId]);
+      
+  
+      useEffect(() => {
+        const intervalId = setInterval(async () => {
+          console.log('Periodic update interval triggered');
+          // Check if there is any in-progress appointment for today
+          const inProgress = todaysAppointments.find(app => app.status === 'in-progress');
+          if (!inProgress) {
+            console.log("No in-progress appointment; skipping periodic update.");
+            socket.emit('leaveRoom', { technicianId: currentTechnicianId });
+            socket.disconnect(); // if you want to disconnect entirely
+            return;
+          }
+          // Get current location
+          let permission = await Location.requestForegroundPermissionsAsync();
+          if (permission.status !== 'granted') {
+            console.error("Location permission not granted on periodic update.");
+            return;
+          }
+          const loc = await Location.getCurrentPositionAsync({});
+          const currentLoc = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      
+          // Update location on server and notify via socket
+          await updateLocationOnServer(currentLoc);
+          await sendLocationUpdate(currentLoc);
+      
+          // Call backend schedule recalculation endpoint
+          const token = await AsyncStorage.getItem('token');
+          const appointmentDate = new Date().toISOString(); // Today's date
+          const requestBody = {
+            technicianId: currentTechnicianId,
+            appointmentDate,
+            currentLocation: currentLoc,
+          };
+      
+          console.log('Periodic schedule endpoint call with:', requestBody);
+          const response = await fetch('http://10.0.0.14:5000/api/schedule/calculateSchedule', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+          if (!response.ok) {
+            console.error('Periodic schedule calculation failed.');
+            return;
+          }
+          const result = await response.json();
+          console.log("Periodic schedule recalculated:", result.computedSchedule);
+        }, 10 * 60 * 1000); // 10 minutes interval
+      
+        return () => clearInterval(intervalId);
+      }, [todaysAppointments, currentTechnicianId, currentUserId]);
+      
+
 
 
     // Send location update (and compute & emit the queue) if there’s an appointment today.
-    const sendLocationUpdate = async (location: any) => {
-        const now = new Date();
-
-        if (!todaysAppointments) {
-            Alert.alert('Location Update', 'No appointment scheduled for today. Not sending location update.');
-            console.log('No appointment scheduled for today. Not sending location update.');
-            return;
-        }
-
-        // Request permission and get current location.
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Location permission not granted.');
-            return;
-        }
-
-        const currentLocation = { lat: location.coords.latitude, lng: location.coords.longitude };
-
-
-        // Emit location update with additional queue info.
+    async function sendLocationUpdate(location: { lat: number, lng: number }) {
         const locationData = {
-            userId: currentUserId,
-            technicianId: currentTechnicianId, // assuming technician's id is currentUserId
-            lat: currentLocation.lat,
-            lng: currentLocation.lng,
-            // queue: computedQueue,
+          technicianId: currentTechnicianId,
+          lat: location.lat,
+          lng: location.lng,
         };
         socket.emit('locationUpdate', locationData);
-        console.log('Location update sent:', locationData);
-    };
+        console.log('Location update emitted:', locationData);
+    }
 
 
     const handleDatePress = (day: any) => {
@@ -209,11 +287,11 @@ const TechnicianScreen = () => {
 
     const renderDailyAppointments = () => {
         const sortedAppointments = dailyAppointments.sort(
-            (a, b) =>  new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()
+            (a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()
         );
 
         return sortedAppointments.map((appointment) => (
-            <AppointmentCard key = {appointment._id} appointment={appointment} role='Technician' />
+            <AppointmentCard key={appointment._id} appointment={appointment} role='Technician' />
         ));
     };
 
