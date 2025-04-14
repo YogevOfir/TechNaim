@@ -28,8 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   
-  
-  
 
   const login = async (userData: { email: string }) => {
     console.log('Logging in user:', userData);
