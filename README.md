@@ -42,17 +42,16 @@ Below are a few screenshots that represent our application. Replace the placehol
 
 ### Screenshots
 
-<!-- Row 1: Technician Dashboard and Customer Map View -->
-<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 20px;">
-  <img src="./TechNaimApp/assets/TechNaim_Technician.png" alt="Technician Dashboard" width="300px" style="margin: 10px;" />
-  <img src="./TechNaimApp/assets/TechNaim_Customer.png" alt="Customer Map View" width="300px" style="margin: 10px;" />
-</div>
+<h2 align="center">Screenshots</h2>
 
-<!-- Row 2: Administrator Dashboard and Create Appointment -->
-<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
-  <img src="./TechNaimApp/assets/TechNaim_Admin.png" alt="Administrator Dashboard" width="300px" style="margin: 10px;" />
-  <img src="./TechNaimApp/assets/TechNaim_CreateAppointment.png" alt="Create Appointment" width="300px" style="margin: 10px;" />
-</div>
+<!-- Two side-by-side screenshots -->
+<p align="center">
+  <!-- Technician Dashboard -->
+  <img src="./TechNaimApp/assets/TechNaim_Technician.png" alt="Technician Dashboard" width="250px" style="margin: 0 10px;" />
+
+  <!-- Customer Map View -->
+  <img src="./TechNaimApp/assets/TechNaim_Customer.png" alt="Customer Map" width="250px" style="margin: 0 10px;" />
+</p>
 
 ## Contributing
 
